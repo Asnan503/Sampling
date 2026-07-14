@@ -1,0 +1,1267 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manifest — Stock Control Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&family=Roboto+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  :root{
+    --navy-900: #0a1a33;
+    --navy-800: #0f2347;
+    --navy-700: #16305e;
+    --navy-600: #1d3f78;
+    --navy-500: #2a5298;
+    --accent: #2962ff;
+    --accent-dim: #e8edfb;
+    --bg: #f2f4f8;
+    --surface: #ffffff;
+    --border: #e1e5ec;
+    --text: #16213e;
+    --muted: #5c6b7e;
+    --muted-2: #8894a8;
+    --green: #1e7d4f;
+    --green-bg: #e6f4ec;
+    --red: #c62828;
+    --red-bg: #fbe9e7;
+    --amber-bg: #fff4e0;
+    --amber-text: #8a5a00;
+    --mono: 'Roboto Mono', monospace;
+    --body: 'Roboto', sans-serif;
+    --e1: 0 1px 2px rgba(15,35,71,.08), 0 1px 3px rgba(15,35,71,.10);
+    --e2: 0 2px 6px rgba(15,35,71,.10), 0 1px 2px rgba(15,35,71,.08);
+    --e3: 0 8px 24px rgba(15,35,71,.14);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--text); font-family:var(--body);
+  }
+  ::selection{ background:var(--navy-500); color:#fff; }
+
+  header.top{
+    padding:22px clamp(16px,4vw,48px);
+    background:linear-gradient(120deg,var(--navy-900),var(--navy-700));
+    box-shadow:var(--e2);
+    display:flex; justify-content:space-between; align-items:flex-end; gap:20px; flex-wrap:wrap;
+    position:relative; z-index:2;
+  }
+  .brand-tag{
+    display:inline-flex; align-items:center; gap:8px;
+    font-family:var(--body); font-size:11px; font-weight:700; letter-spacing:.14em; color:#9fb8ea;
+    text-transform:uppercase; margin-bottom:8px;
+  }
+  .brand-tag::before{ content:''; width:8px; height:8px; border-radius:2px; background:var(--accent); }
+  h1{
+    font-family:var(--body); font-weight:700; font-size:clamp(22px,3.2vw,30px); margin:0; color:#ffffff;
+    letter-spacing:-0.01em;
+  }
+  .sub{ color:#c3d0ea; font-size:13.5px; margin-top:6px; max-width:580px; }
+  .clock{ font-family:var(--mono); font-size:12px; color:#a9bce0; text-align:right; }
+  .clock b{ color:#ffffff; font-size:15px; display:block; font-family:var(--mono); }
+
+  main{ padding:28px clamp(16px,4vw,48px) 64px; max-width:1400px; margin:0 auto; }
+
+  /* ---- import panel ---- */
+  .import-panel{
+    border:1px solid var(--border); background:var(--surface);
+    border-radius:12px; padding:22px 24px; margin-bottom:28px;
+    position:relative; overflow:hidden; box-shadow:var(--e1);
+    border-top:3px solid var(--navy-700);
+  }
+  .import-panel::before{
+    content:'IMPORT'; position:absolute; top:16px; right:20px;
+    font-family:var(--body); font-size:10px; font-weight:700; letter-spacing:.18em; color:var(--muted-2);
+  }
+  .import-panel h2{ font-family:var(--body); font-weight:700; font-size:16px; margin:0 0 4px; color:var(--navy-800); }
+  .import-panel p.hint{ color:var(--muted); font-size:13px; margin:0 0 18px; }
+  .import-grid{ display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  @media(max-width:760px){ .import-grid{ grid-template-columns:1fr; } }
+  .drop{
+    border:1px dashed var(--border); border-radius:10px; padding:16px;
+    background:#f7f9fc; transition:border-color .15s ease;
+  }
+  .drop.has-file{ border-color:var(--green); background:var(--green-bg); }
+  .drop.error{ border-color:var(--red); background:var(--red-bg); }
+  .drop label.title{ display:block; font-size:12.5px; font-weight:700; color:var(--text); margin-bottom:3px; }
+  .drop .desc{ font-size:11.5px; color:var(--muted); margin-bottom:10px; }
+  .drop input[type=file]{
+    width:100%; font-size:12px; color:var(--muted); font-family:var(--body);
+  }
+  .drop input[type=file]::file-selector-button{
+    background:var(--navy-800); color:#fff; border:none;
+    border-radius:20px; padding:7px 14px; font-size:12px; font-weight:600; margin-right:10px; cursor:pointer;
+  }
+  .filestat{ margin-top:8px; font-family:var(--mono); font-size:11px; color:var(--green); min-height:14px; }
+  .filestat.err{ color:var(--red); }
+
+  .import-actions{ display:flex; align-items:center; gap:14px; margin-top:18px; flex-wrap:wrap; }
+  button.primary{
+    background:var(--navy-800); color:#fff; border:none; font-weight:700;
+    font-family:var(--body); font-size:13px; padding:11px 24px; border-radius:24px; cursor:pointer;
+    letter-spacing:.02em; box-shadow:var(--e1); transition:box-shadow .15s ease, background .15s ease;
+  }
+  button.primary:disabled{ background:#c7cddb; color:#8a92a5; box-shadow:none; cursor:not-allowed; }
+  button.primary:hover:not(:disabled){ background:var(--accent); box-shadow:var(--e2); }
+  #procStatus{ font-family:var(--mono); font-size:12px; color:var(--muted); }
+  #procStatus.ok{ color:var(--green); }
+  #procStatus.busy{ color:var(--accent); }
+
+  /* ---- kpi row ---- */
+  .kpis{ display:grid; grid-template-columns:repeat(6,1fr); gap:14px; margin-bottom:32px; }
+  @media(max-width:1200px){ .kpis{ grid-template-columns:repeat(3,1fr);} }
+  @media(max-width:640px){ .kpis{ grid-template-columns:repeat(2,1fr);} }
+  .kpi{
+    border:1px solid var(--border); background:var(--surface); border-radius:12px; padding:16px 18px;
+    border-top:3px solid var(--navy-600); box-shadow:var(--e1);
+  }
+  .kpi.grey{ border-top-color:var(--accent); }
+  .kpi.hold{ border-top-color:var(--red); }
+  .kpi .n{ font-family:var(--body); font-size:28px; font-weight:700; color:var(--navy-900); }
+  .kpi .l{ font-size:11.5px; color:var(--muted); text-transform:uppercase; letter-spacing:.05em; margin-top:4px; font-weight:500; }
+
+  /* ---- insight kpi row ---- */
+  .insight-head{
+    display:flex; justify-content:space-between; align-items:center; gap:14px; flex-wrap:wrap;
+    margin-bottom:14px;
+  }
+  .insight-head h2{ font-family:var(--body); font-weight:700; font-size:15px; margin:0; color:var(--navy-800); }
+  .insight-head .sub{ color:var(--muted); font-size:12px; margin-top:2px; max-width:520px; }
+  button.png-btn{
+    background:#fff; color:var(--navy-700); border:1px solid var(--navy-700); font-weight:700;
+    font-family:var(--body); font-size:12.5px; padding:8px 16px; border-radius:20px; cursor:pointer;
+    letter-spacing:.02em; transition:background .15s ease, color .15s ease; white-space:nowrap;
+  }
+  button.png-btn:hover:not(:disabled){ background:var(--navy-700); color:#fff; }
+  button.png-btn:disabled{ opacity:.45; cursor:not-allowed; }
+  #insightCapture{ background:var(--bg); padding:2px; }
+  .insight-kpis{ display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:32px; }
+  @media(max-width:1100px){ .insight-kpis{ grid-template-columns:repeat(2,1fr);} }
+  @media(max-width:640px){ .insight-kpis{ grid-template-columns:1fr;} }
+  .ikpi{
+    border:1px solid var(--border); background:var(--surface); border-radius:12px; padding:16px 18px;
+    border-top:3px solid var(--navy-500); box-shadow:var(--e1);
+  }
+  .ikpi .tagline{ font-size:10.5px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--muted-2); margin-bottom:8px; }
+  .ikpi .val{ font-family:var(--body); font-size:19px; font-weight:700; color:var(--navy-900); line-height:1.25; word-break:break-word; }
+  .ikpi .meta{ font-size:12px; color:var(--muted); margin-top:6px; font-family:var(--mono); }
+  .ikpi.c1{ border-top-color:var(--navy-600); }
+  .ikpi.c2{ border-top-color:var(--accent); }
+  .ikpi.c3{ border-top-color:var(--red); }
+  .ikpi.c4{ border-top-color:#7c3aed; }
+
+  /* ---- report card ---- */
+  .report{
+    border:1px solid var(--border); background:var(--surface); border-radius:12px;
+    margin-bottom:24px; overflow:hidden; box-shadow:var(--e1);
+  }
+  .report-head{
+    display:flex; justify-content:space-between; align-items:center; gap:16px;
+    padding:18px 22px; border-bottom:1px solid var(--border); flex-wrap:wrap;
+    background:linear-gradient(180deg,#f7f9fc,#ffffff);
+  }
+  .report-head .tag{
+    font-family:var(--body); font-size:10.5px; font-weight:700; color:var(--accent); letter-spacing:.12em;
+    text-transform:uppercase; margin-bottom:4px; display:block;
+  }
+  .report-head.grey .tag{ color:#7c3aed; }
+  .report-head.hold .tag{ color:var(--red); }
+  .report-head h3{ font-family:var(--body); font-weight:700; font-size:17px; margin:0; color:var(--navy-900); }
+  .report-head .desc{ color:var(--muted); font-size:12.5px; margin-top:3px; max-width:520px; }
+
+  .report-toolbar{
+    display:flex; justify-content:space-between; align-items:center; gap:14px;
+    padding:12px 22px; border-bottom:1px solid var(--border); flex-wrap:wrap; background:#fafbfd;
+  }
+  .seg{
+    display:inline-flex; border:1px solid var(--border); border-radius:24px; overflow:hidden; background:var(--surface);
+  }
+  .seg button{
+    background:transparent; border:none; color:var(--muted); font-family:var(--body); font-weight:600;
+    font-size:11.5px; padding:7px 14px; cursor:pointer; border-right:1px solid var(--border);
+    white-space:nowrap; transition:background .12s ease, color .12s ease;
+  }
+  .seg button:last-child{ border-right:none; }
+  .seg button.active{ background:var(--navy-800); color:#fff; }
+  .seg button:hover:not(.active){ background:var(--accent-dim); color:var(--navy-800); }
+  .locfilter-na{ font-family:var(--body); font-size:11.5px; color:var(--muted-2); font-style:italic; }
+
+  .report-controls{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  .report-controls input[type=search]{
+    background:var(--surface); border:1px solid var(--border); color:var(--text);
+    padding:8px 12px; border-radius:20px; font-size:12.5px; font-family:var(--body); width:190px;
+  }
+  .report-controls input[type=search]:focus{ outline:none; border-color:var(--accent); }
+  .report-controls select.cat-select{
+    background:var(--surface); border:1px solid var(--border); color:var(--text);
+    padding:8px 12px; border-radius:20px; font-size:12.5px; font-family:var(--body); width:190px;
+    cursor:pointer;
+  }
+  .report-controls select.cat-select:focus{ outline:none; border-color:var(--accent); }
+  .badge-count{
+    font-family:var(--mono); font-size:11px; background:var(--accent-dim); border:1px solid #cddcfa;
+    color:var(--navy-700); padding:5px 10px; border-radius:20px; font-weight:600;
+  }
+  button.pdf-btn{
+    background:var(--surface); border:1px solid var(--navy-700); color:var(--navy-700);
+    font-family:var(--body); font-weight:700; font-size:12px; padding:8px 16px; border-radius:20px;
+    cursor:pointer; white-space:nowrap; transition:background .12s ease, color .12s ease;
+  }
+  button.pdf-btn:hover{ background:var(--navy-800); border-color:var(--navy-800); color:#fff; }
+  button.pdf-btn:disabled{ opacity:.35; cursor:not-allowed; }
+  .report-head.grey ~ .report-toolbar button.pdf-btn{ border-color:#7c3aed; color:#7c3aed; }
+  .report-head.grey ~ .report-toolbar button.pdf-btn:hover{ background:#7c3aed; color:#fff; }
+  .report-head.hold ~ .report-toolbar button.pdf-btn{ border-color:var(--red); color:var(--red); }
+  .report-head.hold ~ .report-toolbar button.pdf-btn:hover{ background:var(--red); color:#fff; }
+  .report-head.summary .tag{ color:#0f766e; }
+  button.pdf-btn.teal{ border-color:#0f766e; color:#0f766e; }
+  button.pdf-btn.teal:hover{ background:#0f766e; color:#fff; }
+  .total-cell{ font-weight:700; color:var(--navy-900); }
+  .hold-pill{
+    display:inline-block; padding:2px 9px; border-radius:20px; font-size:10.5px; font-family:var(--body); font-weight:700;
+    color:var(--red); background:var(--red-bg); border:1px solid #f0b8b3;
+  }
+
+  .table-wrap{ max-height:440px; overflow:auto; }
+  table{ width:100%; border-collapse:collapse; font-size:13px; }
+  thead th{
+    position:sticky; top:0; background:#eef1f7; text-align:left; padding:10px 16px;
+    font-family:var(--body); font-weight:700; font-size:11px; color:var(--navy-700);
+    text-transform:uppercase; letter-spacing:.04em; border-bottom:1px solid var(--border); z-index:1;
+  }
+  tbody td{ padding:9px 16px; border-bottom:1px solid var(--border); font-family:var(--body); color:var(--text); }
+  tbody tr:nth-child(even){ background:#f8fafc; }
+  tbody tr:hover{ background:var(--accent-dim); }
+  td.mono, th.mono{ font-family:var(--mono); font-size:12.5px; }
+  .cat-pill{
+    display:inline-block; padding:3px 10px; border-radius:20px;
+    background:var(--accent-dim); border:1px solid #cddcfa; font-size:11px; color:var(--navy-700);
+    font-family:var(--mono); white-space:nowrap; font-weight:500;
+  }
+  .type-pill{
+    display:inline-block; padding:2px 9px; border-radius:20px; font-size:10.5px; font-family:var(--body); font-weight:700;
+    border:1px solid transparent;
+  }
+  .type-pill.topper{ color:var(--amber-text); background:var(--amber-bg); border-color:#f3d99c; }
+  .type-pill.display{ color:var(--green); background:var(--green-bg); border-color:#b8e0c8; }
+  .type-pill.warehouse{ color:var(--navy-700); background:var(--accent-dim); border-color:#cddcfa; }
+  .neg{ color:var(--red); font-weight:700; }
+  .empty-state{ padding:40px 22px; text-align:center; color:var(--muted); font-size:13px; }
+  .empty-state b{ color:var(--navy-800); display:block; margin-bottom:4px; font-family:var(--body); font-weight:700; font-size:15px;}
+
+  footer{ text-align:center; color:var(--muted-2); font-size:11.5px; padding:22px; font-family:var(--mono); }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div>
+    <a href="index.html" style="display:inline-flex;align-items:center;gap:6px;color:#bcd0f7;text-decoration:none;font-size:12.5px;margin-bottom:8px;">&larr; Menu Utama</a>
+    <span class="brand-tag">Gudang / Warehouse Ops</span>
+    <h1>Stock Control Dashboard</h1>
+    <div class="sub">Rekap lokasi campur consignment/retail, lokasi over-SKU, selisih stock NAV minus tanpa OTS NP, dan lokasi grey area.</div>
+  </div>
+  <div class="clock"><b id="clockTime">—</b><span id="dataAsOf">Belum ada data diproses</span></div>
+</header>
+
+<main>
+
+  <section class="import-panel">
+    <h2>Import Data</h2>
+    <p class="hint">Unggah kedua file Excel di bawah ini. Setiap kali data operasional berubah, unggah ulang file terbaru lalu klik Proses Data untuk memperbarui seluruh laporan.</p>
+    <div class="import-grid">
+      <div class="drop" id="dropWarehouse">
+        <label class="title">File 1 — Stock Warehouse By Location (WMS Store)</label>
+        <div class="desc">Kolom wajib: Storage Location Id, Storage Location Active Status, Item Category Description, Item No, Item Description, Stock On Hand Qty</div>
+        <input type="file" id="fileWarehouse" accept=".xlsx,.xls">
+        <div class="filestat" id="statWarehouse"></div>
+      </div>
+      <div class="drop" id="dropWmsNav">
+        <label class="title">File 2 — Stock WMS vs NAV</label>
+        <div class="desc">Kolom wajib: Category, Item No, Item Name, STOCK NAV, OTS NP</div>
+        <input type="file" id="fileWmsNav" accept=".xlsx,.xls">
+        <div class="filestat" id="statWmsNav"></div>
+      </div>
+    </div>
+    <div class="import-actions">
+      <button class="primary" id="btnProcess" disabled>Proses Data</button>
+      <span id="procStatus">Unggah kedua file untuk mengaktifkan tombol proses.</span>
+    </div>
+  </section>
+
+  <section class="kpis">
+    <div class="kpi"><div class="n" id="kpiLoc1">–</div><div class="l">Lokasi Campur Cons/Retail</div></div>
+    <div class="kpi"><div class="n" id="kpiLoc2">–</div><div class="l">Lokasi &gt;15 SKU</div></div>
+    <div class="kpi"><div class="n" id="kpiNeg">–</div><div class="l">Item NAV Minus Tanpa OTS NP</div></div>
+    <div class="kpi grey"><div class="n" id="kpiGrey">–</div><div class="l">Lokasi Grey Area</div></div>
+    <div class="kpi hold"><div class="n" id="kpiHold">–</div><div class="l">Lokasi Status Hold</div></div>
+    <div class="kpi"><div class="n" id="kpiLocTotal">–</div><div class="l">Total Storage Location Dianalisa</div></div>
+  </section>
+
+  <div id="insightCapture">
+    <div class="insight-head">
+      <div>
+        <h2>Insight Kategori &amp; Item Terbanyak</h2>
+        <div class="sub">Ringkasan otomatis dari 4 laporan di bawah — kategori/item dengan jumlah kejadian terbanyak.</div>
+      </div>
+      <button class="png-btn" id="btnDownloadInsightPng" disabled>⬇ Download PNG</button>
+    </div>
+    <div class="insight-kpis">
+      <div class="ikpi c1">
+        <div class="tagline">Category Paling Banyak · Lokasi Campur</div>
+        <div class="val" id="insight1Val">–</div>
+        <div class="meta" id="insight1Meta">Belum ada data</div>
+      </div>
+      <div class="ikpi c2">
+        <div class="tagline">Category Paling Banyak · Lokasi &gt;15 SKU</div>
+        <div class="val" id="insight2Val">–</div>
+        <div class="meta" id="insight2Meta">Belum ada data</div>
+      </div>
+      <div class="ikpi c3">
+        <div class="tagline">Item Paling Banyak Minus Tanpa OTS</div>
+        <div class="val" id="insight3Val">–</div>
+        <div class="meta" id="insight3Meta">Belum ada data</div>
+      </div>
+      <div class="ikpi c4">
+        <div class="tagline">Category Paling Banyak · Lokasi Hold</div>
+        <div class="val" id="insight4Val">–</div>
+        <div class="meta" id="insight4Meta">Belum ada data</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- REPORT 1 -->
+  <section class="report">
+    <div class="report-head">
+      <div>
+        <span class="tag">Laporan 01</span>
+        <h3>Lokasi Campur Item Consignment &amp; Retail</h3>
+        <div class="desc">Storage Location Id yang menyimpan item consignment (deskripsi diawali "C/") bercampur dengan item retail/non-consignment.</div>
+      </div>
+    </div>
+    <div class="report-toolbar">
+      <div class="seg" id="locseg1" data-report="1">
+        <button data-type="all" class="active">Semua</button>
+        <button data-type="topper">Topper (C)</button>
+        <button data-type="display">Display (D)</button>
+        <button data-type="warehouse">Warehouse</button>
+      </div>
+      <div class="report-controls">
+        <span class="badge-count" id="count1">0 baris</span>
+        <select id="catFilter1" class="cat-select"><option value="all">Semua Category</option></select>
+        <button class="pdf-btn" id="pdf1" disabled>↓ PDF</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table id="table1">
+        <thead><tr>
+          <th>Category</th><th class="mono">Location</th><th>Tipe</th><th class="mono">Ttl Item Cons</th><th class="mono">Ttl Item Retail/Non Cons</th><th>Keterangan</th>
+        </tr></thead>
+        <tbody id="body1"></tbody>
+      </table>
+      <div class="empty-state" id="empty1"><b>Belum ada data</b>Import &amp; proses file Stock Warehouse By Location terlebih dahulu.</div>
+    </div>
+  </section>
+
+  <!-- REPORT 2 -->
+  <section class="report">
+    <div class="report-head">
+      <div>
+        <span class="tag">Laporan 02</span>
+        <h3>Lokasi dengan Lebih dari 15 SKU (Non-Consignment)</h3>
+        <div class="desc">Storage Location Id dengan jumlah item (SKU unik) retail/non-consignment lebih dari 15. Item consignment diabaikan dari perhitungan.</div>
+      </div>
+    </div>
+    <div class="report-toolbar">
+      <div class="seg" id="locseg2" data-report="2">
+        <button data-type="all" class="active">Semua</button>
+        <button data-type="topper">Topper (C)</button>
+        <button data-type="display">Display (D)</button>
+        <button data-type="warehouse">Warehouse</button>
+      </div>
+      <div class="report-controls">
+        <span class="badge-count" id="count2">0 baris</span>
+        <select id="catFilter2" class="cat-select"><option value="all">Semua Category</option></select>
+        <button class="pdf-btn" id="pdf2" disabled>↓ PDF</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table id="table2">
+        <thead><tr>
+          <th>Category</th><th class="mono">Location</th><th>Tipe</th><th class="mono">Ttl Item</th><th>Keterangan</th>
+        </tr></thead>
+        <tbody id="body2"></tbody>
+      </table>
+      <div class="empty-state" id="empty2"><b>Belum ada data</b>Import &amp; proses file Stock Warehouse By Location terlebih dahulu.</div>
+    </div>
+  </section>
+
+  <!-- REPORT 3 -->
+  <section class="report">
+    <div class="report-head">
+      <div>
+        <span class="tag">Laporan 03</span>
+        <h3>Stock NAV Minus Tanpa OTS NP</h3>
+        <div class="desc">Item dengan STOCK NAV bernilai minus (negatif) yang tidak memiliki nilai OTS NP (kosong atau nol) pada file Stock WMS vs NAV.</div>
+      </div>
+    </div>
+    <div class="report-toolbar">
+      <span class="locfilter-na">Filter Topper/Display/Warehouse tidak tersedia — file Stock WMS vs NAV tidak memuat Storage Location Id.</span>
+      <div class="report-controls">
+        <span class="badge-count" id="count3">0 baris</span>
+        <select id="catFilter3" class="cat-select"><option value="all">Semua Category</option></select>
+        <button class="pdf-btn" id="pdf3" disabled>↓ PDF</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table id="table3">
+        <thead><tr>
+          <th>Category</th><th class="mono">Item Code</th><th>Deskripsi</th><th class="mono">SOH</th>
+        </tr></thead>
+        <tbody id="body3"></tbody>
+      </table>
+      <div class="empty-state" id="empty3"><b>Belum ada data</b>Import &amp; proses file Stock WMS vs NAV terlebih dahulu.</div>
+    </div>
+  </section>
+
+  <!-- REPORT 4: GREY AREA -->
+  <section class="report">
+    <div class="report-head grey">
+      <div>
+        <span class="tag">Laporan 04 · Grey Area</span>
+        <h3>Lokasi Grey Area</h3>
+        <div class="desc">Storage Location Id yang tidak diawali huruf C (Topper), D (Display), maupun W (Warehouse) — perlu dicek ulang klasifikasi lokasinya.</div>
+      </div>
+    </div>
+    <div class="report-toolbar">
+      <span class="locfilter-na">Semua baris di laporan ini sudah bukan Topper/Display/Warehouse — filter tipe tidak berlaku.</span>
+      <div class="report-controls">
+        <span class="badge-count" id="count4">0 baris</span>
+        <input type="search" id="search4" placeholder="Cari storage location id…">
+        <button class="pdf-btn" id="pdf4" disabled>↓ PDF</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table id="table4">
+        <thead><tr>
+          <th class="mono">Storage Location Id</th><th class="mono">Total Qty On Hand</th><th class="mono">Total Item</th>
+        </tr></thead>
+        <tbody id="body4"></tbody>
+      </table>
+      <div class="empty-state" id="empty4"><b>Belum ada data</b>Import &amp; proses file Stock Warehouse By Location terlebih dahulu.</div>
+    </div>
+  </section>
+
+  <!-- REPORT 5: LOCATION ACTIVE = HOLD -->
+  <section class="report">
+    <div class="report-head hold">
+      <div>
+        <span class="tag">Laporan 05 · Hold</span>
+        <h3>Lokasi dengan Location Active = Hold</h3>
+        <div class="desc">Storage Location Id yang berstatus Hold (Storage Location Active Status = Hold) pada file Stock Warehouse By Location.</div>
+      </div>
+    </div>
+    <div class="report-toolbar">
+      <div class="report-controls">
+        <span class="badge-count" id="count5">0 baris</span>
+        <select id="catFilter5" class="cat-select"><option value="all">Semua Category</option></select>
+        <input type="search" id="search5" placeholder="Cari storage location id…">
+        <button class="pdf-btn" id="pdf5" disabled>↓ PDF</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table id="table5">
+        <thead><tr>
+          <th>Category</th><th class="mono">Storage Location Id</th><th>Location Active</th>
+        </tr></thead>
+        <tbody id="body5"></tbody>
+      </table>
+      <div class="empty-state" id="empty5"><b>Belum ada data</b>Import &amp; proses file Stock Warehouse By Location terlebih dahulu.</div>
+    </div>
+  </section>
+
+  <!-- REPORT 6: RINGKASAN BY CATEGORY -->
+  <section class="report">
+    <div id="report6Capture">
+      <div class="report-head summary">
+        <div>
+          <span class="tag">Laporan 06 · Ringkasan</span>
+          <h3>Ringkasan By Category</h3>
+          <div class="desc">Rekap per Item Category Description: total lokasi campur Cons/Retail, total lokasi &gt;15 SKU, total item minus tanpa OTS NP, dan total lokasi Hold. Bisa difilter per tipe lokasi Topper/Display/Warehouse.</div>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table id="table6">
+          <thead><tr>
+            <th>Category</th>
+            <th class="mono">Total Lokasi Campur</th>
+            <th class="mono">Total Lokasi &gt;15 SKU</th>
+            <th class="mono">Total Item Minus</th>
+            <th class="mono">Total Lokasi Hold</th>
+            <th class="mono">Total Kejadian</th>
+          </tr></thead>
+          <tbody id="body6"></tbody>
+        </table>
+        <div class="empty-state" id="empty6"><b>Belum ada data</b>Import &amp; proses kedua file terlebih dahulu.</div>
+      </div>
+    </div>
+    <div class="report-toolbar">
+      <div class="seg" id="locseg6" data-report="6">
+        <button data-type="all" class="active">Semua</button>
+        <button data-type="topper">Topper (C)</button>
+        <button data-type="display">Display (D)</button>
+        <button data-type="warehouse">Warehouse</button>
+      </div>
+      <div class="report-controls">
+        <span class="badge-count" id="count6">0 baris</span>
+        <input type="search" id="search6" placeholder="Cari category…">
+        <button class="pdf-btn teal" id="png6" disabled>↓ PNG</button>
+        <button class="pdf-btn teal" id="pdf6" disabled>↓ PDF</button>
+      </div>
+    </div>
+    <div class="locfilter-na" style="padding:0 22px 12px; display:block;">Catatan: kolom <b>Total Item Minus</b> bersumber dari file Stock WMS vs NAV yang tidak memuat Storage Location Id, sehingga nilainya tidak mengikuti filter Topper/Display/Warehouse di atas.</div>
+  </section>
+
+</main>
+
+<footer>Stock Control Dashboard · data diproses lokal di browser, tidak dikirim ke server manapun</footer>
+
+<script>
+/* ---------------- clock ---------------- */
+function tickClock(){
+  const d = new Date();
+  document.getElementById('clockTime').textContent = d.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+tickClock(); setInterval(tickClock, 1000);
+
+/* ---------------- state ---------------- */
+let warehouseRaw = null; // array of row-objects
+let wmsNavRaw = null;
+let report1Data = [], report2Data = [], report3Data = [], report4Data = [], report5Data = [], report6Data = [];
+let filtered1 = [], filtered2 = [], filtered3 = [], filtered4 = [], filtered5 = [], filtered6 = [];
+let locType1 = 'all', locType2 = 'all', locType6 = 'all';
+let catFilter1 = 'all', catFilter2 = 'all', catFilter3 = 'all', catFilter5 = 'all';
+let searchTerm4 = '', searchTerm5 = '', searchTerm6 = '';
+
+/* ---------------- helpers ---------------- */
+function toNumber(v){
+  if(v === null || v === undefined || v === '') return 0;
+  const n = typeof v === 'number' ? v : parseFloat(String(v).replace(/,/g,''));
+  return isNaN(n) ? 0 : n;
+}
+function norm(s){ return (s===null||s===undefined) ? '' : String(s).trim(); }
+
+/* Topper = starts with C, Display = starts with D, Warehouse = everything else (incl. W and anything not C/D) */
+function classifyLocation(loc){
+  const c = norm(loc).charAt(0).toUpperCase();
+  if(c === 'C') return 'topper';
+  if(c === 'D') return 'display';
+  return 'warehouse';
+}
+function typeLabel(t){
+  return t==='topper' ? 'Topper' : t==='display' ? 'Display' : 'Warehouse';
+}
+/* Grey area = not starting with C, D, or W */
+function isGreyArea(loc){
+  const c = norm(loc).charAt(0).toUpperCase();
+  return c !== 'C' && c !== 'D' && c !== 'W';
+}
+
+/* pick the most frequent category from a {category: count} tally */
+function topCategory(catCountObj){
+  let top='-', max=-1;
+  Object.entries(catCountObj).forEach(([k,v]) => { if(v>max){ max=v; top=k; } });
+  return top;
+}
+/* sort an array of report rows by category (A-Z), using tiebreak(a,b) for rows in the same category */
+function sortByCategory(arr, tiebreak){
+  arr.sort((a,b) => {
+    const c = String(a.category).localeCompare(String(b.category));
+    return c !== 0 ? c : tiebreak(a,b);
+  });
+}
+
+function findHeaderRow(rows, mustContain){
+  for(let i=0;i<Math.min(rows.length,15);i++){
+    const rowVals = (rows[i]||[]).map(c => norm(c).toLowerCase());
+    const hit = mustContain.every(req => rowVals.includes(req.toLowerCase()));
+    if(hit) return i;
+  }
+  return -1;
+}
+
+function rowsToObjects(rows, headerIdx){
+  const headers = rows[headerIdx].map(h => norm(h));
+  const out = [];
+  for(let i=headerIdx+1;i<rows.length;i++){
+    const r = rows[i];
+    if(!r || r.every(c => c===null || c===undefined || c==='')) continue;
+    const obj = {};
+    headers.forEach((h,idx) => { if(h) obj[h] = r[idx] !== undefined ? r[idx] : null; });
+    out.push(obj);
+  }
+  return out;
+}
+
+function readWorkbookRows(file){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try{
+        const data = new Uint8Array(e.target.result);
+        const wb = XLSX.read(data, {type:'array'});
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:null, raw:true});
+        resolve(rows);
+      }catch(err){ reject(err); }
+    };
+    reader.onerror = () => reject(new Error('Gagal membaca file'));
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+/* ---------------- file inputs ---------------- */
+const fileWarehouseInput = document.getElementById('fileWarehouse');
+const fileWmsNavInput = document.getElementById('fileWmsNav');
+let fWarehouse = null, fWmsNav = null;
+
+function refreshProcessButton(){
+  document.getElementById('btnProcess').disabled = !(fWarehouse && fWmsNav);
+  document.getElementById('procStatus').textContent = (fWarehouse && fWmsNav)
+    ? 'Siap diproses.' : 'Unggah kedua file untuk mengaktifkan tombol proses.';
+}
+
+fileWarehouseInput.addEventListener('change', (e) => {
+  fWarehouse = e.target.files[0] || null;
+  const stat = document.getElementById('statWarehouse');
+  const drop = document.getElementById('dropWarehouse');
+  if(fWarehouse){
+    stat.textContent = '✓ ' + fWarehouse.name;
+    stat.classList.remove('err'); drop.classList.add('has-file'); drop.classList.remove('error');
+  } else { stat.textContent=''; drop.classList.remove('has-file'); }
+  refreshProcessButton();
+});
+fileWmsNavInput.addEventListener('change', (e) => {
+  fWmsNav = e.target.files[0] || null;
+  const stat = document.getElementById('statWmsNav');
+  const drop = document.getElementById('dropWmsNav');
+  if(fWmsNav){
+    stat.textContent = '✓ ' + fWmsNav.name;
+    stat.classList.remove('err'); drop.classList.add('has-file'); drop.classList.remove('error');
+  } else { stat.textContent=''; drop.classList.remove('has-file'); }
+  refreshProcessButton();
+});
+
+/* ---------------- process ---------------- */
+document.getElementById('btnProcess').addEventListener('click', async () => {
+  const statusEl = document.getElementById('procStatus');
+  const btn = document.getElementById('btnProcess');
+  btn.disabled = true;
+  statusEl.className = 'busy';
+  statusEl.textContent = 'Membaca file…';
+  try{
+    const [whRows, navRows] = await Promise.all([
+      readWorkbookRows(fWarehouse),
+      readWorkbookRows(fWmsNav)
+    ]);
+
+    // ---- Warehouse By Location ----
+    const whHeaderIdx = findHeaderRow(whRows, ['Location Id','Storage Location Id','Storage Location Active Status','Item Description']);
+    if(whHeaderIdx === -1){
+      document.getElementById('dropWarehouse').classList.add('error');
+      throw new Error('Format File 1 tidak dikenali — pastikan ini file "Stock Warehouse By Location" dengan kolom Storage Location Active Status.');
+    }
+    document.getElementById('dropWarehouse').classList.remove('error');
+    warehouseRaw = rowsToObjects(whRows, whHeaderIdx);
+
+    // ---- WMS vs NAV ----
+    const navHeaderIdx = findHeaderRow(navRows, ['Site ID','Item No','STOCK NAV','OTS NP']);
+    if(navHeaderIdx === -1){
+      document.getElementById('dropWmsNav').classList.add('error');
+      throw new Error('Format File 2 tidak dikenali — pastikan ini file "Stock WMS vs NAV".');
+    }
+    document.getElementById('dropWmsNav').classList.remove('error');
+    wmsNavRaw = rowsToObjects(navRows, navHeaderIdx);
+
+    statusEl.textContent = 'Menghitung laporan…';
+    computeReport1and2();
+    computeReport3();
+    computeReport4();
+    computeReport5();
+    computeReport6();
+    renderAll();
+
+    const now = new Date();
+    document.getElementById('dataAsOf').textContent = 'Data diproses ' + now.toLocaleString('id-ID');
+    statusEl.className = 'ok';
+    statusEl.textContent = `Selesai — ${warehouseRaw.length.toLocaleString('id-ID')} baris lokasi, ${wmsNavRaw.length.toLocaleString('id-ID')} baris WMS vs NAV.`;
+  }catch(err){
+    statusEl.className = '';
+    statusEl.textContent = '⚠ ' + err.message;
+    console.error(err);
+  }finally{
+    btn.disabled = false;
+  }
+});
+
+/* ---------------- report 1 & 2 computation ---------------- */
+function computeReport1and2(){
+  const locMap = {};
+  warehouseRaw.forEach(r => {
+    const loc = norm(r['Storage Location Id']);
+    if(!loc) return;
+    if(!locMap[loc]) locMap[loc] = { catCount:{}, nonConsCatCount:{}, consItems:new Set(), retailItems:new Set() };
+    const cat = norm(r['Item Category Description']) || '-';
+    locMap[loc].catCount[cat] = (locMap[loc].catCount[cat]||0) + 1;
+
+    const desc = norm(r['Item Description']).toUpperCase();
+    const itemNo = norm(r['Item No']);
+    const isCons = desc.startsWith('C/');
+    if(isCons){
+      locMap[loc].consItems.add(itemNo);
+    }else{
+      locMap[loc].retailItems.add(itemNo);
+      locMap[loc].nonConsCatCount[cat] = (locMap[loc].nonConsCatCount[cat]||0) + 1;
+    }
+  });
+
+  report1Data = [];
+  report2Data = [];
+  Object.keys(locMap).forEach(loc => {
+    const d = locMap[loc];
+    const consCount = d.consItems.size;
+    const retailCount = d.retailItems.size;
+    if(consCount>0 && retailCount>0){
+      report1Data.push({
+        category: topCategory(d.catCount), location: loc, locType: classifyLocation(loc),
+        ttlCons: consCount, ttlRetail: retailCount,
+        ket: 'Gabung Consignment & Retail'
+      });
+    }
+    if(retailCount > 15){
+      report2Data.push({
+        category: topCategory(d.nonConsCatCount), location: loc, locType: classifyLocation(loc),
+        ttlItem: retailCount, ket: 'Lebih dari 15 SKU'
+      });
+    }
+  });
+  sortByCategory(report1Data, (a,b) => (b.ttlCons+b.ttlRetail) - (a.ttlCons+a.ttlRetail));
+  sortByCategory(report2Data, (a,b) => b.ttlItem - a.ttlItem);
+
+  document.getElementById('kpiLocTotal').textContent = Object.keys(locMap).length.toLocaleString('id-ID');
+}
+
+/* ---------------- report 3 computation ---------------- */
+function computeReport3(){
+  report3Data = [];
+  wmsNavRaw.forEach(r => {
+    const stockNav = toNumber(r['STOCK NAV']);
+    const otsNp = toNumber(r['OTS NP']);
+    if(stockNav < 0 && otsNp === 0){
+      report3Data.push({
+        category: norm(r['Category']) || '-',
+        itemCode: norm(r['Item No']) || '-',
+        deskripsi: norm(r['Item Name']) || '-',
+        soh: stockNav
+      });
+    }
+  });
+  sortByCategory(report3Data, (a,b) => a.soh - b.soh);
+}
+
+/* ---------------- report 4 computation: grey area ---------------- */
+function computeReport4(){
+  const locMap = {};
+  warehouseRaw.forEach(r => {
+    const loc = norm(r['Storage Location Id']);
+    if(!loc || !isGreyArea(loc)) return;
+    if(!locMap[loc]) locMap[loc] = { qty:0, items:new Set(), catCount:{} };
+    const cat = norm(r['Item Category Description']) || '-';
+    locMap[loc].catCount[cat] = (locMap[loc].catCount[cat]||0) + 1;
+    locMap[loc].qty += toNumber(r['Stock On Hand Qty']);
+    locMap[loc].items.add(norm(r['Item No']));
+  });
+  report4Data = Object.keys(locMap).map(loc => ({
+    category: topCategory(locMap[loc].catCount),
+    location: loc,
+    qty: locMap[loc].qty,
+    ttlItem: locMap[loc].items.size
+  }));
+  sortByCategory(report4Data, (a,b) => b.qty - a.qty);
+}
+
+/* ---------------- report 5 computation: Location Active = Hold ---------------- */
+function computeReport5(){
+  const locMap = {};
+  warehouseRaw.forEach(r => {
+    const loc = norm(r['Storage Location Id']);
+    if(!loc) return;
+    const active = norm(r['Storage Location Active Status']);
+    if(active.toUpperCase() !== 'HOLD') return;
+    if(!locMap[loc]) locMap[loc] = { catCount:{}, active };
+    const cat = norm(r['Item Category Description']) || '-';
+    locMap[loc].catCount[cat] = (locMap[loc].catCount[cat]||0) + 1;
+  });
+  report5Data = Object.keys(locMap).map(loc => ({
+    category: topCategory(locMap[loc].catCount),
+    location: loc,
+    active: locMap[loc].active || 'HOLD',
+    locType: classifyLocation(loc)
+  }));
+  sortByCategory(report5Data, (a,b) => a.location.localeCompare(b.location));
+}
+
+/* ---------------- insight kpis: top category / item across reports ---------------- */
+function topCategoryByLocationCount(data){
+  const tally = {};
+  data.forEach(r => { tally[r.category] = (tally[r.category]||0) + 1; });
+  let bestCat = null, bestCount = 0;
+  Object.entries(tally).forEach(([cat,count]) => { if(count > bestCount){ bestCat = cat; bestCount = count; } });
+  return { category: bestCat, count: bestCount };
+}
+
+function computeInsightKPIs(){
+  const btn = document.getElementById('btnDownloadInsightPng');
+  const hasAnyData = report1Data.length || report2Data.length || report3Data.length || report5Data.length;
+  btn.disabled = !hasAnyData;
+
+  // Insight 1: category with most locations in Report 1 (Lokasi Campur)
+  const i1 = topCategoryByLocationCount(report1Data);
+  if(i1.category){
+    document.getElementById('insight1Val').textContent = i1.category;
+    document.getElementById('insight1Meta').textContent = `${i1.count.toLocaleString('id-ID')} lokasi campur`;
+  } else {
+    document.getElementById('insight1Val').textContent = '–';
+    document.getElementById('insight1Meta').textContent = 'Belum ada data';
+  }
+
+  // Insight 2: category with most locations in Report 2 (>15 SKU)
+  const i2 = topCategoryByLocationCount(report2Data);
+  if(i2.category){
+    document.getElementById('insight2Val').textContent = i2.category;
+    document.getElementById('insight2Meta').textContent = `${i2.count.toLocaleString('id-ID')} lokasi >15 SKU`;
+  } else {
+    document.getElementById('insight2Val').textContent = '–';
+    document.getElementById('insight2Meta').textContent = 'Belum ada data';
+  }
+
+  // Insight 3: single item with the largest minus (most negative SOH) in Report 3
+  if(report3Data.length){
+    let worst = report3Data[0];
+    report3Data.forEach(r => { if(r.soh < worst.soh) worst = r; });
+    document.getElementById('insight3Val').textContent = worst.itemCode + ' — ' + worst.deskripsi;
+    document.getElementById('insight3Meta').textContent = `${worst.category} · SOH ${worst.soh.toLocaleString('id-ID')}`;
+  } else {
+    document.getElementById('insight3Val').textContent = '–';
+    document.getElementById('insight3Meta').textContent = 'Belum ada data';
+  }
+
+  // Insight 4: category with most locations in Report 5 (Hold)
+  const i4 = topCategoryByLocationCount(report5Data);
+  if(i4.category){
+    document.getElementById('insight4Val').textContent = i4.category;
+    document.getElementById('insight4Meta').textContent = `${i4.count.toLocaleString('id-ID')} lokasi hold`;
+  } else {
+    document.getElementById('insight4Val').textContent = '–';
+    document.getElementById('insight4Meta').textContent = 'Belum ada data';
+  }
+}
+
+/* ---------------- report 6 computation: ringkasan by category ---------------- */
+/* buildCategorySummary: aggregates categories from report 1/2/5, filtered by location type.
+   Report 3 (item minus) has no Storage Location Id in its source file, so it is always
+   included in full regardless of the topper/display/warehouse filter. */
+function buildCategorySummary(locType){
+  const tally = {};
+  function ensure(cat){
+    if(!tally[cat]) tally[cat] = { category:cat, campur:0, sku15:0, minus:0, hold:0 };
+    return tally[cat];
+  }
+  report1Data.forEach(r => { if(locType==='all' || r.locType===locType) ensure(r.category).campur++; });
+  report2Data.forEach(r => { if(locType==='all' || r.locType===locType) ensure(r.category).sku15++; });
+  report3Data.forEach(r => { ensure(r.category).minus++; });
+  report5Data.forEach(r => { if(locType==='all' || r.locType===locType) ensure(r.category).hold++; });
+
+  const out = Object.values(tally).map(r => ({
+    ...r,
+    total: r.campur + r.sku15 + r.minus + r.hold
+  }));
+  out.sort((a,b) => b.total - a.total || String(a.category).localeCompare(b.category));
+  return out;
+}
+
+function computeReport6(){
+  // full (unfiltered) dataset — used to know whether any data exists at all
+  report6Data = buildCategorySummary('all');
+}
+
+/* ---------------- render ---------------- */
+function renderAll(){
+  catFilter1 = populateCategorySelect('catFilter1', report1Data, catFilter1);
+  catFilter2 = populateCategorySelect('catFilter2', report2Data, catFilter2);
+  catFilter3 = populateCategorySelect('catFilter3', report3Data, catFilter3);
+  catFilter5 = populateCategorySelect('catFilter5', report5Data, catFilter5);
+  applyFilter1(); applyFilter2(); applyFilter3(); applyFilter5(); applyFilter6();
+  filtered4 = report4Data.slice();
+  renderTable1(); renderTable2(); renderTable3(); renderTable4(); renderTable5(); renderTable6();
+
+  document.getElementById('kpiLoc1').textContent = report1Data.length.toLocaleString('id-ID');
+  document.getElementById('kpiLoc2').textContent = report2Data.length.toLocaleString('id-ID');
+  document.getElementById('kpiNeg').textContent = report3Data.length.toLocaleString('id-ID');
+  document.getElementById('kpiGrey').textContent = report4Data.length.toLocaleString('id-ID');
+  document.getElementById('kpiHold').textContent = report5Data.length.toLocaleString('id-ID');
+
+  document.getElementById('pdf1').disabled = report1Data.length===0;
+  document.getElementById('pdf2').disabled = report2Data.length===0;
+  document.getElementById('pdf3').disabled = report3Data.length===0;
+  document.getElementById('pdf4').disabled = report4Data.length===0;
+  document.getElementById('pdf5').disabled = report5Data.length===0;
+  document.getElementById('pdf6').disabled = report6Data.length===0;
+  document.getElementById('png6').disabled = report6Data.length===0;
+
+  computeInsightKPIs();
+}
+
+function applyFilter1(){
+  filtered1 = report1Data.filter(r =>
+    (locType1==='all' || r.locType===locType1) &&
+    (catFilter1==='all' || r.category===catFilter1)
+  );
+}
+function applyFilter2(){
+  filtered2 = report2Data.filter(r =>
+    (locType2==='all' || r.locType===locType2) &&
+    (catFilter2==='all' || r.category===catFilter2)
+  );
+}
+function applyFilter3(){
+  filtered3 = report3Data.filter(r => (catFilter3==='all' || r.category===catFilter3));
+}
+function applyFilter5(){
+  const q = (searchTerm5||'').trim().toLowerCase();
+  filtered5 = report5Data.filter(r =>
+    (catFilter5==='all' || r.category===catFilter5) &&
+    (!q || r.location.toLowerCase().includes(q))
+  );
+}
+function applyFilter6(){
+  const q = (searchTerm6||'').trim().toLowerCase();
+  const base = buildCategorySummary(locType6);
+  filtered6 = !q ? base : base.filter(r => r.category.toLowerCase().includes(q));
+}
+
+/* populate a <select> with "Semua Category" + sorted unique categories from a dataset */
+function populateCategorySelect(selectId, data, currentValue){
+  const sel = document.getElementById(selectId);
+  const cats = Array.from(new Set(data.map(r => r.category))).sort((a,b) => a.localeCompare(b));
+  const keepValue = cats.includes(currentValue) ? currentValue : 'all';
+  sel.innerHTML = '<option value="all">Semua Category</option>' +
+    cats.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
+  sel.value = keepValue;
+  return keepValue;
+}
+
+function renderTable1(){
+  const body = document.getElementById('body1');
+  const empty = document.getElementById('empty1');
+  document.getElementById('count1').textContent = filtered1.length.toLocaleString('id-ID') + ' baris';
+  if(filtered1.length===0){ body.innerHTML=''; empty.style.display='block'; empty.querySelector('b').textContent = report1Data.length? 'Tidak ditemukan' : 'Belum ada data'; return; }
+  empty.style.display='none';
+  body.innerHTML = filtered1.map(r => `
+    <tr>
+      <td><span class="cat-pill">${escapeHtml(r.category)}</span></td>
+      <td class="mono">${escapeHtml(r.location)}</td>
+      <td><span class="type-pill ${r.locType}">${typeLabel(r.locType)}</span></td>
+      <td class="mono">${r.ttlCons}</td>
+      <td class="mono">${r.ttlRetail}</td>
+      <td>${escapeHtml(r.ket)}</td>
+    </tr>`).join('');
+}
+function renderTable2(){
+  const body = document.getElementById('body2');
+  const empty = document.getElementById('empty2');
+  document.getElementById('count2').textContent = filtered2.length.toLocaleString('id-ID') + ' baris';
+  if(filtered2.length===0){ body.innerHTML=''; empty.style.display='block'; empty.querySelector('b').textContent = report2Data.length? 'Tidak ditemukan' : 'Belum ada data'; return; }
+  empty.style.display='none';
+  body.innerHTML = filtered2.map(r => `
+    <tr>
+      <td><span class="cat-pill">${escapeHtml(r.category)}</span></td>
+      <td class="mono">${escapeHtml(r.location)}</td>
+      <td><span class="type-pill ${r.locType}">${typeLabel(r.locType)}</span></td>
+      <td class="mono">${r.ttlItem}</td>
+      <td>${escapeHtml(r.ket)}</td>
+    </tr>`).join('');
+}
+function renderTable3(){
+  const body = document.getElementById('body3');
+  const empty = document.getElementById('empty3');
+  document.getElementById('count3').textContent = filtered3.length.toLocaleString('id-ID') + ' baris';
+  if(filtered3.length===0){ body.innerHTML=''; empty.style.display='block'; empty.querySelector('b').textContent = report3Data.length? 'Tidak ditemukan' : 'Belum ada data'; return; }
+  empty.style.display='none';
+  body.innerHTML = filtered3.map(r => `
+    <tr>
+      <td><span class="cat-pill">${escapeHtml(r.category)}</span></td>
+      <td class="mono">${escapeHtml(r.itemCode)}</td>
+      <td>${escapeHtml(r.deskripsi)}</td>
+      <td class="mono neg">${r.soh.toLocaleString('id-ID')}</td>
+    </tr>`).join('');
+}
+function renderTable4(){
+  const body = document.getElementById('body4');
+  const empty = document.getElementById('empty4');
+  document.getElementById('count4').textContent = filtered4.length.toLocaleString('id-ID') + ' baris';
+  if(filtered4.length===0){ body.innerHTML=''; empty.style.display='block'; empty.querySelector('b').textContent = report4Data.length? 'Tidak ditemukan' : 'Belum ada data'; return; }
+  empty.style.display='none';
+  body.innerHTML = filtered4.map(r => `
+    <tr>
+      <td class="mono">${escapeHtml(r.location)}</td>
+      <td class="mono">${r.qty.toLocaleString('id-ID')}</td>
+      <td class="mono">${r.ttlItem}</td>
+    </tr>`).join('');
+}
+
+function renderTable5(){
+  const body = document.getElementById('body5');
+  const empty = document.getElementById('empty5');
+  document.getElementById('count5').textContent = filtered5.length.toLocaleString('id-ID') + ' baris';
+  if(filtered5.length===0){ body.innerHTML=''; empty.style.display='block'; empty.querySelector('b').textContent = report5Data.length? 'Tidak ditemukan' : 'Belum ada data'; return; }
+  empty.style.display='none';
+  body.innerHTML = filtered5.map(r => `
+    <tr>
+      <td><span class="cat-pill">${escapeHtml(r.category)}</span></td>
+      <td class="mono">${escapeHtml(r.location)}</td>
+      <td><span class="hold-pill">${escapeHtml(r.active)}</span></td>
+    </tr>`).join('');
+}
+function renderTable6(){
+  const body = document.getElementById('body6');
+  const empty = document.getElementById('empty6');
+  document.getElementById('count6').textContent = filtered6.length.toLocaleString('id-ID') + ' category';
+  if(filtered6.length===0){ body.innerHTML=''; empty.style.display='block'; empty.querySelector('b').textContent = report6Data.length? 'Tidak ditemukan' : 'Belum ada data'; return; }
+  empty.style.display='none';
+  body.innerHTML = filtered6.map(r => `
+    <tr>
+      <td><span class="cat-pill">${escapeHtml(r.category)}</span></td>
+      <td class="mono">${r.campur.toLocaleString('id-ID')}</td>
+      <td class="mono">${r.sku15.toLocaleString('id-ID')}</td>
+      <td class="mono">${r.minus.toLocaleString('id-ID')}</td>
+      <td class="mono">${r.hold.toLocaleString('id-ID')}</td>
+      <td class="mono total-cell">${r.total.toLocaleString('id-ID')}</td>
+    </tr>`).join('');
+}
+
+function escapeHtml(s){
+  return String(s===undefined||s===null?'':s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+/* ---------------- segmented location-type filters ---------------- */
+document.getElementById('locseg1').addEventListener('click', (e) => {
+  const btn = e.target.closest('button'); if(!btn) return;
+  document.querySelectorAll('#locseg1 button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  locType1 = btn.dataset.type;
+  applyFilter1(); renderTable1();
+});
+document.getElementById('locseg2').addEventListener('click', (e) => {
+  const btn = e.target.closest('button'); if(!btn) return;
+  document.querySelectorAll('#locseg2 button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  locType2 = btn.dataset.type;
+  applyFilter2(); renderTable2();
+});
+document.getElementById('locseg6').addEventListener('click', (e) => {
+  const btn = e.target.closest('button'); if(!btn) return;
+  document.querySelectorAll('#locseg6 button').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  locType6 = btn.dataset.type;
+  applyFilter6(); renderTable6();
+});
+
+/* ---------------- category filter dropdowns ---------------- */
+document.getElementById('catFilter1').addEventListener('change', (e) => {
+  catFilter1 = e.target.value;
+  applyFilter1(); renderTable1();
+});
+document.getElementById('catFilter2').addEventListener('change', (e) => {
+  catFilter2 = e.target.value;
+  applyFilter2(); renderTable2();
+});
+document.getElementById('catFilter3').addEventListener('change', (e) => {
+  catFilter3 = e.target.value;
+  applyFilter3(); renderTable3();
+});
+document.getElementById('catFilter5').addEventListener('change', (e) => {
+  catFilter5 = e.target.value;
+  applyFilter5(); renderTable5();
+});
+
+/* ---------------- search (grey area only) ---------------- */
+document.getElementById('search4').addEventListener('input', (e) => {
+  const q = e.target.value.trim().toLowerCase();
+  filtered4 = !q ? report4Data.slice() : report4Data.filter(r =>
+    r.location.toLowerCase().includes(q));
+  renderTable4();
+});
+
+/* ---------------- search (hold locations) ---------------- */
+document.getElementById('search5').addEventListener('input', (e) => {
+  searchTerm5 = e.target.value;
+  applyFilter5(); renderTable5();
+});
+
+/* ---------------- search (category summary) ---------------- */
+document.getElementById('search6').addEventListener('input', (e) => {
+  searchTerm6 = e.target.value;
+  applyFilter6(); renderTable6();
+});
+
+/* ---------------- PDF export ---------------- */
+function exportPDF(title, subtitle, head, body, filename){
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({orientation:'landscape', unit:'pt', format:'a4'});
+  doc.setFont('helvetica','bold'); doc.setFontSize(14);
+  doc.setTextColor(20,23,28);
+  doc.text(title, 40, 40);
+  doc.setFont('helvetica','normal'); doc.setFontSize(10);
+  doc.setTextColor(90,90,90);
+  doc.text(subtitle + '  ·  Dicetak: ' + new Date().toLocaleString('id-ID'), 40, 58);
+
+  doc.autoTable({
+    head:[head], body: body, startY: 72,
+    styles:{ font:'helvetica', fontSize:9, cellPadding:5, textColor:[22,33,62] },
+    headStyles:{ fillColor:[15,35,71], textColor:[255,255,255], fontStyle:'bold' },
+    alternateRowStyles:{ fillColor:[242,244,248] },
+    margin:{left:40, right:40}
+  });
+  doc.save(filename);
+}
+
+document.getElementById('pdf1').addEventListener('click', () => {
+  exportPDF(
+    'Laporan Lokasi Campur Item Consignment & Retail',
+    `Sumber: Stock Warehouse By Location (WMS Store) — Filter tipe: ${locType1==='all'?'Semua':typeLabel(locType1)}`,
+    ['Category','Location','Tipe','Ttl Item Cons','Ttl Item Retail/Non Cons','Keterangan'],
+    filtered1.map(r => [r.category, r.location, typeLabel(r.locType), r.ttlCons, r.ttlRetail, r.ket]),
+    'Laporan_Lokasi_Campur_Consignment_Retail.pdf'
+  );
+});
+document.getElementById('pdf2').addEventListener('click', () => {
+  exportPDF(
+    'Laporan Lokasi dengan Lebih dari 15 SKU',
+    `Sumber: Stock Warehouse By Location (WMS Store) — item consignment diabaikan — Filter tipe: ${locType2==='all'?'Semua':typeLabel(locType2)}`,
+    ['Category','Location','Tipe','Ttl Item','Keterangan'],
+    filtered2.map(r => [r.category, r.location, typeLabel(r.locType), r.ttlItem, r.ket]),
+    'Laporan_Lokasi_Lebih_15_SKU.pdf'
+  );
+});
+document.getElementById('pdf3').addEventListener('click', () => {
+  exportPDF(
+    'Laporan Stock NAV Minus Tanpa OTS NP',
+    'Sumber: Stock WMS vs NAV',
+    ['Category','Item Code','Deskripsi','SOH'],
+    filtered3.map(r => [r.category, r.itemCode, r.deskripsi, r.soh]),
+    'Laporan_Stock_NAV_Minus_Tanpa_OTS_NP.pdf'
+  );
+});
+document.getElementById('pdf4').addEventListener('click', () => {
+  exportPDF(
+    'Laporan Lokasi Grey Area',
+    'Sumber: Stock Warehouse By Location (WMS Store) — lokasi bukan Topper (C) / Display (D) / Warehouse (W)',
+    ['Storage Location Id','Total Qty On Hand','Total Item'],
+    filtered4.map(r => [r.location, r.qty, r.ttlItem]),
+    'Laporan_Lokasi_Grey_Area.pdf'
+  );
+});
+document.getElementById('pdf5').addEventListener('click', () => {
+  exportPDF(
+    'Laporan Lokasi Location Active = Hold',
+    'Sumber: Stock Warehouse By Location (WMS Store) — Storage Location Active Status = Hold',
+    ['Category','Storage Location Id','Location Active'],
+    filtered5.map(r => [r.category, r.location, r.active]),
+    'Laporan_Lokasi_Status_Hold.pdf'
+  );
+});
+document.getElementById('pdf6').addEventListener('click', () => {
+  exportPDF(
+    'Ringkasan By Category',
+    `Sumber: Laporan 01, 02, 03, dan 05 — Filter tipe lokasi: ${locType6==='all'?'Semua':typeLabel(locType6)} (Total Item Minus selalu menampilkan semua data)`,
+    ['Category','Total Lokasi Campur','Total Lokasi >15 SKU','Total Item Minus','Total Lokasi Hold','Total Kejadian'],
+    filtered6.map(r => [r.category, r.campur, r.sku15, r.minus, r.hold, r.total]),
+    'Ringkasan_By_Category.pdf'
+  );
+});
+/* ---------------- PNG capture helper ----------------
+   .table-wrap has max-height + overflow:auto for on-screen scrolling, and thead th
+   uses position:sticky. Both clip/misplace content when captured as-is by html2canvas,
+   so we temporarily expand them to full height before the snapshot, then restore. */
+function expandForCapture(container){
+  const saved = [];
+  container.querySelectorAll('.table-wrap').forEach(el => {
+    saved.push({ el, prop:'maxHeight', val:el.style.maxHeight });
+    saved.push({ el, prop:'overflow', val:el.style.overflow });
+    el.style.maxHeight = 'none';
+    el.style.overflow = 'visible';
+  });
+  container.querySelectorAll('thead th').forEach(el => {
+    saved.push({ el, prop:'position', val:el.style.position });
+    el.style.position = 'static';
+  });
+  return () => saved.forEach(s => { s.el.style[s.prop] = s.val; });
+}
+
+async function captureAsPNG(container, filename, bgColor){
+  const restore = expandForCapture(container);
+  try{
+    const canvas = await html2canvas(container, { backgroundColor: bgColor, scale: 2 });
+    const link = document.createElement('a');
+    link.download = filename;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  } finally {
+    restore();
+  }
+}
+
+document.getElementById('png6').addEventListener('click', async () => {
+  const btn = document.getElementById('png6');
+  const target = document.getElementById('report6Capture');
+  const originalLabel = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Menyiapkan…';
+  try{
+    const stamp = new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
+    await captureAsPNG(target, `Ringkasan_By_Category_${stamp}.png`, '#ffffff');
+  }catch(err){
+    console.error(err);
+    alert('Gagal membuat PNG: ' + err.message);
+  }finally{
+    btn.disabled = report6Data.length===0;
+    btn.textContent = originalLabel;
+  }
+});
+
+/* ---------------- download insight KPIs as PNG ---------------- */
+document.getElementById('btnDownloadInsightPng').addEventListener('click', async () => {
+  const btn = document.getElementById('btnDownloadInsightPng');
+  const target = document.getElementById('insightCapture');
+  const originalLabel = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Menyiapkan…';
+  try{
+    const stamp = new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
+    await captureAsPNG(target, `Insight_KPI_Stock_Control_${stamp}.png`, '#f2f4f8');
+  }catch(err){
+    console.error(err);
+    alert('Gagal membuat PNG: ' + err.message);
+  }finally{
+    btn.disabled = false;
+    btn.textContent = originalLabel;
+  }
+});
+</script>
+</body>
+</html>

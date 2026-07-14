@@ -1,0 +1,1400 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sampling Akurasi Lokasi - MITRA10 Tallasa City</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.js"></script>
+<style>
+:root{
+  --navy:#0f2a4a;
+  --navy-deep:#081b32;
+  --navy-soft:#e8edf5;
+  --line:#d7dee8;
+  --white:#ffffff;
+  --hit:#1e7e34;
+  --miss:#b3261e;
+  --over:#b06d00;
+  --text:#1c2733;
+  --muted:#5b6b7c;
+  --radius:10px;
+  --shadow:0 1px 3px rgba(15,42,74,0.08), 0 1px 2px rgba(15,42,74,0.06);
+}
+*{box-sizing:border-box;}
+html{-webkit-text-size-adjust:100%;}
+body{
+  margin:0;
+  font-family:"Segoe UI",Roboto,Arial,sans-serif;
+  background:var(--navy-soft);
+  color:var(--text);
+  padding-bottom:60px;
+  overflow-x:hidden;
+  width:100%;
+}
+header{
+  background:linear-gradient(135deg,var(--navy) 0%,var(--navy-deep) 100%);
+  color:#fff;
+  padding:18px 20px;
+  position:sticky;
+  top:0;
+  z-index:50;
+  box-shadow:var(--shadow);
+}
+header h1{margin:0;font-size:18px;font-weight:600;}
+header p{margin:4px 0 0;font-size:12.5px;opacity:.85;}
+.container{max-width:1200px;margin:0 auto;padding:16px;}
+.card{
+  background:var(--white);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  padding:16px;
+  margin-bottom:16px;
+  border:1px solid var(--line);
+}
+.card h2{
+  margin:0 0 12px;
+  font-size:15px;
+  color:var(--navy);
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.badge{
+  display:inline-block;
+  font-size:11px;
+  font-weight:600;
+  padding:2px 8px;
+  border-radius:20px;
+  background:var(--navy-soft);
+  color:var(--navy);
+}
+.badge.ok{background:#e3f4e6;color:var(--hit);}
+.badge.warn{background:#fbeee0;color:var(--over);}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;}
+.field{display:flex;flex-direction:column;gap:4px;flex:1;min-width:180px;}
+.field label{font-size:12px;color:var(--muted);font-weight:600;}
+input[type=text],input[type=number],input[type=file]{
+  width:100%;
+  max-width:100%;
+  padding:11px 10px;
+  border:1px solid var(--line);
+  border-radius:8px;
+  font-size:16px;
+  outline:none;
+  background:#fff;
+}
+input[type=text]:focus,input[type=number]:focus{border-color:var(--navy);}
+button{
+  cursor:pointer;
+  border:none;
+  border-radius:8px;
+  padding:11px 16px;
+  font-size:13.5px;
+  font-weight:600;
+  transition:opacity .15s;
+  min-height:40px;
+}
+button:active{opacity:.8;}
+.btn-primary{background:var(--navy);color:#fff;}
+.btn-secondary{background:var(--navy-soft);color:var(--navy);}
+.btn-outline{background:#fff;color:var(--navy);border:1px solid var(--navy);}
+.btn-danger{background:#fdeceb;color:var(--miss);}
+.btn-sm{padding:5px 10px;font-size:12px;}
+button:disabled{opacity:.4;cursor:not-allowed;}
+table{width:100%;border-collapse:collapse;font-size:12.5px;}
+thead th{
+  background:var(--navy);
+  color:#fff;
+  text-align:left;
+  padding:8px 8px;
+  position:sticky;top:0;
+  white-space:nowrap;
+}
+tbody td{padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:middle;}
+tbody tr:hover{background:#f4f7fb;}
+.tablewrap{max-height:460px;overflow:auto;border:1px solid var(--line);border-radius:8px;}
+input.fisik-input{
+  width:100%;
+  min-width:96px;
+  padding:12px 10px;
+  border:1.5px solid var(--line);
+  border-radius:8px;
+  text-align:right;
+  font-size:17px;
+  font-weight:600;
+  color:var(--text);
+}
+input.fisik-input:focus{border-color:var(--navy);box-shadow:0 0 0 3px rgba(15,42,74,0.12);}
+td.fisik-cell{min-width:110px;}
+.ket{font-weight:700;padding:3px 10px;border-radius:20px;font-size:11.5px;display:inline-block;min-width:46px;text-align:center;}
+.ket-hit{background:#e3f4e6;color:var(--hit);}
+.ket-miss{background:#fdeceb;color:var(--miss);}
+.ket-over{background:#fbeee0;color:var(--over);}
+.ket-empty{background:#eef1f5;color:var(--muted);}
+.toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px;}
+.small-note{font-size:11.5px;color:var(--muted);margin-top:6px;}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:6px;}
+.stat-box{background:var(--navy-soft);border-radius:8px;padding:10px 12px;}
+.stat-box .num{font-size:20px;font-weight:700;color:var(--navy);}
+.stat-box .lbl{font-size:11px;color:var(--muted);}
+.filter-chips{display:flex;gap:8px;flex-wrap:wrap;}
+.chip{
+  background:#fff;border:1.5px solid var(--navy);color:var(--navy);
+  border-radius:20px;padding:8px 14px;font-size:12.5px;font-weight:600;
+  cursor:pointer;transition:background .15s,color .15s;
+}
+.chip:active{opacity:.8;}
+.chip.active{background:var(--navy);color:#fff;}
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(8,27,50,.55);
+  display:none;align-items:center;justify-content:center;z-index:100;padding:16px;
+}
+.modal-overlay.show{display:flex;}
+#modalOverlay{z-index:110;}
+.modal{
+  background:#fff;border-radius:12px;max-width:520px;width:100%;
+  max-height:85vh;display:flex;flex-direction:column;box-shadow:0 10px 40px rgba(0,0,0,.3);
+}
+.modal-head{padding:14px 18px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;}
+.modal-head h3{margin:0;font-size:15px;color:var(--navy);}
+.modal-body{padding:14px 18px;overflow:auto;}
+.modal-foot{padding:12px 18px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:8px;}
+.close-x{background:none;border:none;font-size:20px;color:var(--muted);cursor:pointer;padding:0 4px;}
+.search-result{
+  border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-bottom:6px;cursor:pointer;
+}
+.search-result:hover{background:var(--navy-soft);}
+.search-result .code{font-weight:700;font-size:12.5px;color:var(--navy);}
+.search-result .desc{font-size:12px;color:var(--text);margin-top:2px;}
+.search-result .meta{font-size:11px;color:var(--muted);margin-top:2px;}
+.selected-item{background:var(--navy-soft);border-radius:8px;padding:10px;margin-bottom:10px;font-size:12.5px;}
+.hidden{display:none !important;}
+.import-status{display:flex;gap:16px;flex-wrap:wrap;margin-top:10px;}
+.import-status .imp{flex:1;min-width:220px;border:1px dashed var(--line);border-radius:8px;padding:10px;font-size:12.5px;}
+.imp.done{border-style:solid;border-color:#bfe3c6;background:#f3faf4;}
+.footer-actions{display:flex;gap:8px;flex-wrap:wrap;}
+.toast{
+  position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+  background:var(--navy-deep);color:#fff;padding:10px 18px;border-radius:24px;
+  font-size:13px;z-index:200;box-shadow:0 4px 16px rgba(0,0,0,.3);opacity:0;pointer-events:none;transition:opacity .25s;
+}
+.toast.show{opacity:1;}
+a.link-btn{text-decoration:none;}
+.summary-actions{display:flex;gap:6px;}
+@media(max-width:640px){
+  .stat-grid{grid-template-columns:repeat(2,1fr);}
+  header h1{font-size:15.5px;}
+  header{padding:14px 16px;}
+  .container{padding:10px;}
+  .card{padding:12px;border-radius:8px;}
+  .row{gap:10px;}
+  .field{min-width:100%;}
+  table{font-size:11.5px;}
+  thead th,tbody td{padding:6px;}
+  .toolbar{flex-direction:column;align-items:stretch;}
+  .toolbar .footer-actions{width:100%;}
+  .footer-actions{width:100%;}
+  .footer-actions button{flex:1 1 calc(50% - 8px);}
+  .modal{max-height:92vh;border-radius:10px;}
+  .modal-foot{flex-wrap:wrap;}
+  .modal-foot button{flex:1 1 auto;}
+  .summary-actions{width:100%;}
+}
+@media(max-width:400px){
+  .stat-grid{grid-template-columns:1fr 1fr;}
+  .footer-actions button{flex:1 1 100%;}
+  header h1{font-size:14.5px;}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <a href="index.html" style="display:inline-flex;align-items:center;gap:6px;color:#bcd0f7;text-decoration:none;font-size:12.5px;margin-bottom:8px;">&larr; Menu Utama</a>
+  <h1>Sampling Akurasi Lokasi</h1>
+  <p>MITRA10 Tallasa City Makassar &mdash; Support Back TLC</p>
+</header>
+
+<div class="container">
+
+  <!-- IMPORT DATA -->
+  <div class="card">
+    <h2>1. Import Data <span id="importOverallBadge" class="badge warn">Belum Lengkap</span></h2>
+    <div class="row">
+      <div class="field">
+        <label>Report Stock Warehouse By Location (.xlsx)</label>
+        <input type="file" id="fileStock" accept=".xlsx,.xls">
+      </div>
+      <div class="field">
+        <label>All Active Item Report - Master Item (.xlsx)</label>
+        <input type="file" id="fileMaster" accept=".xlsx,.xls">
+      </div>
+    </div>
+    <div class="import-status">
+      <div class="imp" id="impStockBox">
+        <b>Data SOH per Lokasi:</b> <span id="impStockText">belum diimpor</span>
+      </div>
+      <div class="imp" id="impMasterBox">
+        <b>Master Item:</b> <span id="impMasterText">belum diimpor</span>
+      </div>
+    </div>
+    <div class="small-note">Data hanya diproses di browser (offline), tidak diupload ke server manapun. Import ulang setiap kali membuka file report terbaru.</div>
+
+    <div style="border-top:1px solid var(--line);margin-top:14px;padding-top:14px;">
+      <div class="toolbar" style="margin-bottom:6px;">
+        <div>
+          <b style="font-size:13px;color:var(--navy);">Atau, Sinkron Otomatis dari Google Sheet</b>
+          <div class="small-note" style="margin-top:2px;">Tarik data langsung dari link publish Google Sheet (Excel), tanpa perlu upload file manual di setiap perangkat.</div>
+        </div>
+        <div class="footer-actions">
+          <button class="btn-secondary" id="btnSyncSheet">⟳ Sinkron dari Google Sheet</button>
+        </div>
+      </div>
+      <div class="small-note" id="sheetSyncStatus">Belum pernah sinkron.</div>
+    </div>
+  </div>
+
+  <!-- INPUT LOKASI -->
+  <div class="card">
+    <h2>2. Input No. Lokasi</h2>
+
+    <div class="field" style="margin-bottom:12px;">
+      <label>Filter WTBD</label>
+      <div class="filter-chips" id="wtbdFilter">
+        <button type="button" class="chip active" data-filter="ALL">Semua</button>
+        <button type="button" class="chip" data-filter="W">Warehouse (W)</button>
+        <button type="button" class="chip" data-filter="C">Topper (C)</button>
+        <button type="button" class="chip" data-filter="D">Display (D)</button>
+      </div>
+    </div>
+
+    <div class="field" style="max-width:340px;margin-bottom:12px;">
+      <label>Nama Executor</label>
+      <div style="display:flex;gap:8px;align-items:stretch;">
+        <input type="text" id="executorInput" placeholder="Ketik nama pelaksana sampling..." autocomplete="off" style="flex:1;">
+        <button type="button" class="btn-primary" id="btnStartExecutor" style="white-space:nowrap;">Mulai</button>
+      </div>
+      <div class="small-note" id="executorHint">Isi nama executor lalu tekan "Mulai" untuk mengaktifkan input No. Lokasi.</div>
+    </div>
+
+    <div class="field" style="max-width:340px;position:relative;">
+      <label>Storage Location Id</label>
+      <div style="display:flex;gap:8px;align-items:stretch;">
+        <input type="text" id="locInput" placeholder="Ketik minimal 3 karakter..." autocomplete="off" style="flex:1;" disabled>
+        <button type="button" class="btn-secondary" id="btnScanQr" style="white-space:nowrap;padding:0 14px;" title="Scan QR No. Lokasi" disabled>▦ Scan QR</button>
+      </div>
+      <div id="locResults" style="margin-top:8px;"></div>
+    </div>
+    <div class="small-note" id="locHint">Isi Nama Executor dan tekan "Mulai" terlebih dahulu. Setelah aktif, ketik No. Lokasi, lalu pilih dari daftar saran yang muncul, atau tekan tombol "Scan QR" untuk memindai QR label lokasi.</div>
+  </div>
+
+
+  <!-- SUMMARY LOKASI TERSAMPLING -->
+  <div class="card">
+    <div class="toolbar">
+      <h2 style="margin:0;">3. Lokasi Sudah Disampling</h2>
+    </div>
+    <div class="stat-grid" id="summaryStats"></div>
+    <div class="tablewrap" style="max-height:340px;">
+      <table>
+        <thead>
+          <tr>
+            <th>No. Lokasi</th>
+            <th>Total Item</th>
+            <th>Total Qty SOH</th>
+            <th>Total Qty Fisik</th>
+            <th>Ket</th>
+            <th>Tgl Sampling</th>
+            <th>Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="summaryTableBody"></tbody>
+      </table>
+    </div>
+    <div class="footer-actions" style="margin-top:14px;">
+      <button class="btn-outline" id="btnExportPdf">Download PDF (Laporan Lengkap)</button>
+      <button class="btn-outline" id="btnExportCsv">Download CSV (Laporan Lengkap)</button>
+      <button class="btn-secondary" id="btnShareWA">Kirim via WhatsApp</button>
+      <button class="btn-danger" id="btnClearAll">Hapus Semua Data Sampling</button>
+    </div>
+    <div class="small-note">Tombol WhatsApp membuka chat dengan ringkasan teks. File PDF/CSV yang sudah didownload dapat dilampirkan manual pada chat WhatsApp.</div>
+  </div>
+
+</div>
+
+<!-- MODAL LOKASI: TABEL ITEM -->
+<div class="modal-overlay" id="locModalOverlay">
+  <div class="modal" style="max-width:1100px;">
+    <div class="modal-head">
+      <h3>Item di Lokasi <span id="curLocLabel" class="badge"></span></h3>
+      <button class="close-x" id="locModalClose">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="tablewrap">
+        <table>
+          <thead>
+            <tr>
+              <th>No. Lokasi</th>
+              <th>Category</th>
+              <th>Item No</th>
+              <th>Barcode No</th>
+              <th>Item Description</th>
+              <th>Base UOM</th>
+              <th>SOH</th>
+              <th style="min-width:110px;">Fisik</th>
+              <th>Ket</th>
+            </tr>
+          </thead>
+          <tbody id="itemTableBody"></tbody>
+        </table>
+      </div>
+      <div class="small-note">Kolom "Fisik" diisi manual sesuai hasil hitung fisik di lapangan. Item hasil temuan yang belum tercatat di sistem dapat ditambahkan lewat tombol "+ Add Item" di bawah.</div>
+    </div>
+    <div class="modal-foot" style="justify-content:space-between;">
+      <button class="btn-secondary btn-sm" id="btnAddItem">+ Add Item</button>
+      <div class="footer-actions">
+        <button class="btn-outline btn-sm" id="btnResetLoc">Reset Input Fisik</button>
+        <button class="btn-primary btn-sm" id="btnSaveLoc">Simpan Lokasi Ini</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ADD ITEM -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>Tambah Item Hasil Sampling</h3>
+      <button class="close-x" id="modalClose">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div id="modalStepSearch">
+        <div class="field">
+          <label>Cari Item Code / Barcode / Deskripsi</label>
+          <input type="text" id="modalSearchInput" placeholder="Ketik minimal 3 karakter...">
+        </div>
+        <div id="modalResults" style="margin-top:10px;"></div>
+      </div>
+      <div id="modalStepQty" class="hidden">
+        <div class="selected-item" id="selectedItemBox"></div>
+        <div class="field">
+          <label>Qty Fisik Ditemukan</label>
+          <input type="number" id="modalQtyInput" min="0" step="1" placeholder="0">
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-outline btn-sm" id="modalBack" style="display:none;">&larr; Kembali</button>
+      <button class="btn-danger btn-sm" id="modalCancel">Batal</button>
+      <button class="btn-primary btn-sm" id="modalSave" style="display:none;">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL SCAN QR NO. LOKASI -->
+<div class="modal-overlay" id="qrModalOverlay">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-head">
+      <h3>Scan QR No. Lokasi</h3>
+      <button class="close-x" id="qrModalClose">&times;</button>
+    </div>
+    <div class="modal-body" style="padding:0;">
+      <div id="qrVideoWrap" style="position:relative;background:#000;width:100%;aspect-ratio:1/1;overflow:hidden;">
+        <video id="qrVideo" playsinline muted style="width:100%;height:100%;object-fit:cover;display:block;"></video>
+        <div id="qrScanBox" style="position:absolute;inset:14%;border:3px solid #fff;border-radius:12px;box-shadow:0 0 0 2000px rgba(0,0,0,.35);pointer-events:none;"></div>
+      </div>
+      <canvas id="qrCanvas" class="hidden"></canvas>
+      <div class="small-note" id="qrStatus" style="padding:12px 18px 0;">Arahkan kamera ke QR label No. Lokasi.</div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-danger btn-sm" id="qrModalCancel">Tutup</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ================= STATE ================= */
+let stockByLocation = {};   // { locId: { locId, items: { itemNo: {category, itemNo, barcode, desc, uom, soh} } } }
+let allLocationIds = [];
+let masterItemList = [];    // [{itemNo, barcode, desc, uom}]
+let currentLocId = null;
+let currentItems = [];      // working array for current location table
+let selectedModalItem = null;
+const LS_KEY = 'sampling_akurasi_progress_v1';
+const LS_EXECUTOR_KEY = 'sampling_akurasi_executor_v1';
+let savedLocations = {};    // persisted result { locId: {items, summary, savedAt} }
+let executorName = '';
+
+/* ============ KONFIGURASI GOOGLE SHEET (sudah ditanam langsung) ============
+   Link "Publish to web" (format Excel/xlsx) dari Google Sheets sudah ditanam
+   permanen di sini sehingga tombol "Sinkron dari Google Sheet" langsung bisa
+   dipakai di perangkat manapun tanpa perlu mengisi link apapun.
+================================================================= */
+const SHEET_CONFIG = {
+  stockUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTQw_5fDYpDHqPCENMDlq053giUhsKYhC8lVV6LDXWJ0kiekYaKw-3Waxv_osEo4082lW7SeeB8KCLB/pub?output=xlsx',
+  masterUrl: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTqgd4cv2BwrqT7e13VdEecVLHWgBJ3HBl0nX6ZTJ_HuhDY8e6si9zsN7GTtIOKZSRCrh5_ZAbv1jZ6/pub?output=xlsx'
+};
+
+/* ================= UTIL ================= */
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2200);
+}
+function fmtNum(n){
+  n = Number(n)||0;
+  return n.toLocaleString('id-ID');
+}
+function computeKet(soh, fisik){
+  if(fisik === '' || fisik === null || fisik === undefined) return '';
+  soh = Number(soh)||0;
+  fisik = Number(fisik);
+  if(soh === fisik) return 'HIT';
+  if(soh > fisik) return 'MISS';
+  return 'OVER';
+}
+function ketBadge(ket){
+  if(ket === 'HIT') return '<span class="ket ket-hit">HIT</span>';
+  if(ket === 'MISS') return '<span class="ket ket-miss">MISS</span>';
+  if(ket === 'OVER') return '<span class="ket ket-over">OVER</span>';
+  return '<span class="ket ket-empty">-</span>';
+}
+function loadProgress(){
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    savedLocations = raw ? JSON.parse(raw) : {};
+  }catch(e){ savedLocations = {}; }
+}
+function persistProgress(){
+  try{
+    localStorage.setItem(LS_KEY, JSON.stringify(savedLocations));
+  }catch(e){ console.error('gagal simpan progress', e); }
+}
+
+/* ================= PARSING GENERIK (dipakai untuk import file & sinkron Google Sheet) ================= */
+function findHeaderIndex(aoa, requiredCols){
+  const limit = Math.min(aoa.length, 15);
+  for(let i=0;i<limit;i++){
+    const row = (aoa[i]||[]).map(c=>String(c===undefined||c===null?'':c).trim().toLowerCase());
+    const ok = requiredCols.every(rc => row.includes(rc.toLowerCase()));
+    if(ok) return i;
+  }
+  return -1;
+}
+function buildColIndex(headerRow){
+  const map = {};
+  headerRow.forEach((h,i)=>{ map[String(h===undefined||h===null?'':h).trim()] = i; });
+  return map;
+}
+function parseStockAOA(aoa){
+  const hIdx = findHeaderIndex(aoa, ['Storage Location Id','Item No','Stock On Hand Qty']);
+  if(hIdx === -1) throw new Error('Header data SOH tidak ditemukan (kolom Storage Location Id / Item No / Stock On Hand Qty tidak ada)');
+  const cols = buildColIndex(aoa[hIdx]);
+  const stockMap = {};
+  let itemCount = 0;
+  for(let i=hIdx+1;i<aoa.length;i++){
+    const row = aoa[i];
+    if(!row || row.length===0) continue;
+    const locId = String(row[cols['Storage Location Id']]||'').trim();
+    const itemNo = String(row[cols['Item No']]||'').trim();
+    if(!locId || !itemNo) continue;
+    if(!stockMap[locId]) stockMap[locId] = {locId, items:{}};
+    const bucket = stockMap[locId].items;
+    const soh = Number(row[cols['Stock On Hand Qty']]||0) || 0;
+    if(bucket[itemNo]){
+      bucket[itemNo].soh += soh;
+    } else {
+      bucket[itemNo] = {
+        category: row[cols['Item Category Description']]||'',
+        itemNo: itemNo,
+        barcode: String(row[cols['Barcode No']]||''),
+        desc: row[cols['Item Description']]||'',
+        uom: row[cols['Base UOM']]||'',
+        soh: soh
+      };
+      itemCount++;
+    }
+  }
+  return {stockMap, itemCount};
+}
+function parseMasterAOA(aoa){
+  const hIdx = findHeaderIndex(aoa, ['Item No','Item Name']);
+  if(hIdx === -1) throw new Error('Header master item tidak ditemukan (kolom Item No / Item Name tidak ada)');
+  const cols = buildColIndex(aoa[hIdx]);
+  const list = [];
+  for(let i=hIdx+1;i<aoa.length;i++){
+    const row = aoa[i];
+    if(!row || row.length===0) continue;
+    const itemNo = String(row[cols['Item No']]||'').trim();
+    if(!itemNo) continue;
+    list.push({
+      itemNo: itemNo,
+      barcode: String(row[cols['Barcode No']]||''),
+      desc: row[cols['Item Name']]||'',
+      uom: row[cols['Base UOM']]||'',
+      category: row[cols['Category Name']]||''
+    });
+  }
+  return list;
+}
+function applyStockResult(stockMap, itemCount, sourceLabel){
+  stockByLocation = stockMap;
+  allLocationIds = Object.keys(stockByLocation).sort();
+  document.getElementById('impStockText').textContent =
+    `${allLocationIds.length.toLocaleString('id-ID')} lokasi, ${itemCount.toLocaleString('id-ID')} baris item unik${sourceLabel?' ('+sourceLabel+')':''}`;
+  document.getElementById('impStockBox').classList.add('done');
+  document.getElementById('locHint').textContent = 'Ketik No. Lokasi lalu pilih dari daftar saran yang muncul.';
+  updateImportBadge();
+  renderSummaryTable();
+}
+function applyMasterResult(list, sourceLabel){
+  masterItemList = list;
+  document.getElementById('impMasterText').textContent =
+    `${masterItemList.length.toLocaleString('id-ID')} item aktif${sourceLabel?' ('+sourceLabel+')':''}`;
+  document.getElementById('impMasterBox').classList.add('done');
+  updateImportBadge();
+}
+
+/* ================= IMPORT: STOCK BY LOCATION (file) ================= */
+document.getElementById('fileStock').addEventListener('change', function(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev){
+    try{
+      const wb = XLSX.read(ev.target.result, {type:'array', cellDates:false});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const aoa = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+      const {stockMap, itemCount} = parseStockAOA(aoa);
+      applyStockResult(stockMap, itemCount, 'file');
+      toast('Data SOH per lokasi berhasil diimpor');
+    }catch(err){
+      console.error(err);
+      toast('Gagal membaca file Stock Warehouse By Location: ' + err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+});
+
+/* ================= IMPORT: MASTER ITEM (file) ================= */
+document.getElementById('fileMaster').addEventListener('change', function(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = function(ev){
+    try{
+      const wb = XLSX.read(ev.target.result, {type:'array', cellDates:false});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const aoa = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+      const list = parseMasterAOA(aoa);
+      applyMasterResult(list, 'file');
+      toast('Master item berhasil diimpor');
+    }catch(err){
+      console.error(err);
+      toast('Gagal membaca file All Active Item Report: ' + err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+});
+
+function updateImportBadge(){
+  const badge = document.getElementById('importOverallBadge');
+  const stockOk = allLocationIds.length>0;
+  const masterOk = masterItemList.length>0;
+  if(stockOk && masterOk){
+    badge.textContent = 'Siap Digunakan';
+    badge.className = 'badge ok';
+  } else {
+    badge.textContent = 'Belum Lengkap';
+    badge.className = 'badge warn';
+  }
+}
+
+/* ================= SINKRON DARI GOOGLE SHEET ================= */
+function csvUrlWithCacheBust(url){
+  const sep = url.includes('?') ? '&' : '?';
+  return url + sep + '_cb=' + Date.now();
+}
+async function fetchSheetAOA(url){
+  const res = await fetch(csvUrlWithCacheBust(url), {cache:'no-store'});
+  if(!res.ok) throw new Error('Gagal mengambil data (HTTP ' + res.status + ')');
+  const buf = await res.arrayBuffer();
+  const wb = XLSX.read(buf, {type:'array', cellDates:false});
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  return XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+}
+async function syncFromGoogleSheet(){
+  const cfg = SHEET_CONFIG;
+  const statusEl = document.getElementById('sheetSyncStatus');
+  statusEl.textContent = 'Sedang sinkron...';
+  let okCount = 0, errMsgs = [];
+  if(cfg.stockUrl){
+    try{
+      const aoa = await fetchSheetAOA(cfg.stockUrl);
+      const {stockMap, itemCount} = parseStockAOA(aoa);
+      applyStockResult(stockMap, itemCount, 'Google Sheet');
+      okCount++;
+    }catch(err){
+      console.error(err);
+      errMsgs.push('Data SOH: ' + err.message);
+    }
+  }
+  if(cfg.masterUrl){
+    try{
+      const aoa2 = await fetchSheetAOA(cfg.masterUrl);
+      const list = parseMasterAOA(aoa2);
+      applyMasterResult(list, 'Google Sheet');
+      okCount++;
+    }catch(err){
+      console.error(err);
+      errMsgs.push('Master Item: ' + err.message);
+    }
+  }
+  const now = new Date().toLocaleString('id-ID');
+  if(errMsgs.length===0){
+    statusEl.textContent = `Sinkron terakhir: ${now} (berhasil)`;
+    toast('Sinkron dari Google Sheet berhasil');
+  } else if(okCount>0){
+    statusEl.textContent = `Sinkron terakhir: ${now} - sebagian gagal: ${errMsgs.join(' | ')}`;
+    toast('Sinkron sebagian berhasil, cek catatan status di bawah tombol');
+  } else {
+    statusEl.textContent = `Sinkron terakhir gagal (${now}): ${errMsgs.join(' | ')}`;
+    toast('Sinkron gagal. Pastikan link publish CSV benar dan bisa diakses.');
+  }
+}
+document.getElementById('btnSyncSheet').addEventListener('click', syncFromGoogleSheet);
+
+/* ================= FILTER WTBD & KPI % SAMPLING ================= */
+const WTBD_LABEL = { W:'Warehouse', C:'Topper', D:'Display' };
+let activeLocFilter = 'ALL'; // 'ALL' | 'W' | 'C' | 'D'
+
+function matchesLocFilter(locId, filter){
+  if(filter==='ALL') return true;
+  return locId.toUpperCase().startsWith(filter);
+}
+function filterLocIds(ids, filter){
+  if(filter==='ALL') return ids;
+  return ids.filter(id=>matchesLocFilter(id, filter));
+}
+function wtbdKpiStatBoxesHtml(){
+  const totalIds = filterLocIds(allLocationIds, activeLocFilter);
+  const totalCount = totalIds.length;
+  const sampledCount = Object.keys(savedLocations).filter(id=>matchesLocFilter(id, activeLocFilter)).length;
+  const pct = totalCount>0 ? Math.round((sampledCount/totalCount)*1000)/10 : 0;
+  const label = activeLocFilter==='ALL' ? 'Semua Lokasi' : `${WTBD_LABEL[activeLocFilter]} (${activeLocFilter})`;
+  return `
+    <div class="stat-box"><div class="num">${totalCount>0 ? pct.toLocaleString('id-ID') : '0'}%</div><div class="lbl">% Tersampling &ndash; ${label}</div></div>
+    <div class="stat-box"><div class="num">${fmtNum(sampledCount)} / ${fmtNum(totalCount)}</div><div class="lbl">Lokasi Tersampling / Total (${label})</div></div>
+  `;
+}
+document.querySelectorAll('#wtbdFilter .chip').forEach(function(btn){
+  btn.addEventListener('click', function(){
+    document.querySelectorAll('#wtbdFilter .chip').forEach(b=>b.classList.remove('active'));
+    this.classList.add('active');
+    activeLocFilter = this.dataset.filter;
+    renderSummaryTable();
+    document.getElementById('locInput').dispatchEvent(new Event('input'));
+  });
+});
+
+/* ================= NAMA EXECUTOR - AKTIVASI INPUT NO. LOKASI ================= */
+function setExecutorActiveUI(active){
+  const locInputEl = document.getElementById('locInput');
+  const btnScanQrEl = document.getElementById('btnScanQr');
+  const execInputEl = document.getElementById('executorInput');
+  const btnStartEl = document.getElementById('btnStartExecutor');
+  const hintEl = document.getElementById('locHint');
+  if(active){
+    locInputEl.disabled = false;
+    btnScanQrEl.disabled = false;
+    execInputEl.disabled = true;
+    btnStartEl.textContent = 'Ganti';
+    hintEl.textContent = `Executor aktif: ${executorName}. Ketik No. Lokasi, lalu pilih dari daftar saran yang muncul, atau tekan tombol "Scan QR" untuk memindai QR label lokasi.`;
+  } else {
+    locInputEl.disabled = true;
+    btnScanQrEl.disabled = true;
+    execInputEl.disabled = false;
+    btnStartEl.textContent = 'Mulai';
+    hintEl.textContent = 'Isi Nama Executor dan tekan "Mulai" terlebih dahulu. Setelah aktif, ketik No. Lokasi, lalu pilih dari daftar saran yang muncul, atau tekan tombol "Scan QR" untuk memindai QR label lokasi.';
+  }
+}
+function loadExecutor(){
+  try{
+    const saved = localStorage.getItem(LS_EXECUTOR_KEY);
+    if(saved){
+      executorName = saved;
+      document.getElementById('executorInput').value = executorName;
+      setExecutorActiveUI(true);
+    }
+  }catch(e){ /* ignore */ }
+}
+document.getElementById('btnStartExecutor').addEventListener('click', function(){
+  const btn = this;
+  if(btn.textContent === 'Mulai'){
+    const val = document.getElementById('executorInput').value.trim();
+    if(!val){ toast('Isi Nama Executor terlebih dahulu'); return; }
+    executorName = val;
+    try{ localStorage.setItem(LS_EXECUTOR_KEY, executorName); }catch(e){}
+    setExecutorActiveUI(true);
+    toast(`Executor aktif: ${executorName}`);
+    document.getElementById('locInput').focus();
+  } else {
+    if(!confirm('Ganti Nama Executor? Input No. Lokasi akan dinonaktifkan sampai nama baru dimasukkan.')) return;
+    executorName = '';
+    try{ localStorage.removeItem(LS_EXECUTOR_KEY); }catch(e){}
+    document.getElementById('executorInput').value = '';
+    setExecutorActiveUI(false);
+    document.getElementById('executorInput').focus();
+  }
+});
+
+/* ================= GRID KPI LENGKAP (ALL / W / C / D) - dipakai untuk 1 laporan utama ================= */
+function computeKpiGridFull(){
+  const keys = ['ALL','W','C','D'];
+  return keys.map(key=>{
+    const totalIds = filterLocIds(allLocationIds, key);
+    const totalCount = totalIds.length;
+    const sampledIds = Object.keys(savedLocations).filter(id=>matchesLocFilter(id, key));
+    const sampledCount = sampledIds.length;
+    const pctSampled = totalCount>0 ? Math.round((sampledCount/totalCount)*1000)/10 : 0;
+    const locs = sampledIds.map(id=>savedLocations[id]);
+    const totalItem = locs.reduce((s,l)=>s+l.summary.totalItem,0);
+    const totalSOH = locs.reduce((s,l)=>s+l.summary.totalSOH,0);
+    const totalFisik = locs.reduce((s,l)=>s+l.summary.totalFisik,0);
+    const hit = locs.filter(l=>l.summary.ket==='HIT').length;
+    const miss = locs.filter(l=>l.summary.ket==='MISS').length;
+    const over = locs.filter(l=>l.summary.ket==='OVER').length;
+    const pctAkurasi = sampledCount>0 ? Math.round((hit/sampledCount)*1000)/10 : 0;
+    return {
+      key,
+      label: key==='ALL' ? 'Semua Lokasi' : `${WTBD_LABEL[key]} (${key})`,
+      totalCount, sampledCount, pctSampled,
+      totalItem, totalSOH, totalFisik,
+      hit, miss, over, pctAkurasi
+    };
+  });
+}
+
+
+/* ================= CARI & PILIH LOKASI (suggestion, seperti pencarian item) ================= */
+let locSearchDebounce = null;
+document.getElementById('locInput').addEventListener('input', function(){
+  clearTimeout(locSearchDebounce);
+  const q = this.value.trim().toUpperCase();
+  const box = document.getElementById('locResults');
+  locSearchDebounce = setTimeout(()=>{
+    if(allLocationIds.length===0){
+      box.innerHTML = '<div class="small-note">Import data SOH per lokasi terlebih dahulu.</div>';
+      return;
+    }
+    const pool = filterLocIds(allLocationIds, activeLocFilter);
+    if(q.length < 3){
+      box.innerHTML = '';
+      return;
+    }
+    const matches = pool.filter(id=>id.toUpperCase().includes(q)).slice(0,30);
+    if(matches.length===0){
+      box.innerHTML = '<div class="small-note">Lokasi tidak ditemukan pada filter WTBD yang aktif.</div>';
+      return;
+    }
+    box.innerHTML = matches.map(id=>{
+      const cnt = Object.keys(stockByLocation[id].items).length;
+      const saved = savedLocations[id] ? ' <span class="badge ok">sudah disampling</span>' : '';
+      return `<div class="search-result" data-id="${id}">
+        <div class="code">${id}${saved}</div>
+        <div class="meta">${cnt} item pada laporan SOH</div>
+      </div>`;
+    }).join('');
+    box.querySelectorAll('.search-result').forEach(el=>{
+      el.addEventListener('click', ()=>{
+        document.getElementById('locInput').value = el.dataset.id;
+        box.innerHTML='';
+        openLocation(el.dataset.id);
+      });
+    });
+  }, 200);
+});
+
+/* ================= SCAN QR NO. LOKASI ================= */
+let qrStream = null;
+let qrRafId = null;
+let qrScanning = false;
+
+function qrSetStatus(msg){
+  const el = document.getElementById('qrStatus');
+  if(el) el.textContent = msg;
+}
+
+async function openQrModal(){
+  document.getElementById('qrModalOverlay').classList.add('show');
+  qrSetStatus('Meminta izin akses kamera...');
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    qrSetStatus('Kamera tidak didukung di browser/halaman ini. Pastikan halaman diakses via https, lalu coba lagi.');
+    return;
+  }
+  try{
+    qrStream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: { ideal: 'environment' },
+        width: { ideal: 1920 },
+        height: { ideal: 1920 }
+      },
+      audio: false
+    });
+  }catch(err){
+    console.error(err);
+    qrSetStatus('Gagal mengakses kamera: ' + err.message + '. Pastikan izin kamera diizinkan dan halaman dibuka via https.');
+    return;
+  }
+  // Coba aktifkan continuous autofocus bila perangkat/browser mendukung
+  try{
+    const track = qrStream.getVideoTracks()[0];
+    const caps = track.getCapabilities ? track.getCapabilities() : {};
+    if(caps.focusMode && caps.focusMode.includes('continuous')){
+      await track.applyConstraints({advanced:[{focusMode:'continuous'}]});
+    }
+  }catch(e){ /* abaikan bila tidak didukung */ }
+
+  const video = document.getElementById('qrVideo');
+  video.srcObject = qrStream;
+  await video.play();
+  qrSetStatus('Arahkan kamera ke QR. Ketuk layar untuk fokus ulang bila gambar buram, jaga jarak sekitar 10-15 cm.');
+  qrScanning = true;
+  qrScanLoop();
+}
+
+// Tap-to-focus: ketuk area preview untuk memicu fokus ulang (jika perangkat mendukung)
+document.getElementById('qrVideoWrap').addEventListener('click', async function(){
+  if(!qrStream) return;
+  try{
+    const track = qrStream.getVideoTracks()[0];
+    const caps = track.getCapabilities ? track.getCapabilities() : {};
+    if(caps.focusMode){
+      qrSetStatus('Memfokuskan ulang...');
+      await track.applyConstraints({advanced:[{focusMode:'single-shot'}]});
+      setTimeout(()=>{
+        track.applyConstraints({advanced:[{focusMode:'continuous'}]}).catch(()=>{});
+        qrSetStatus('Arahkan kamera ke QR. Ketuk layar untuk fokus ulang bila gambar buram, jaga jarak sekitar 10-15 cm.');
+      }, 800);
+    }
+  }catch(err){ /* perangkat tidak mendukung kontrol fokus manual */ }
+});
+
+function closeQrModal(){
+  qrScanning = false;
+  if(qrRafId) cancelAnimationFrame(qrRafId);
+  if(qrStream){
+    qrStream.getTracks().forEach(t=>t.stop());
+    qrStream = null;
+  }
+  document.getElementById('qrModalOverlay').classList.remove('show');
+}
+
+function qrScanLoop(){
+  if(!qrScanning) return;
+  const video = document.getElementById('qrVideo');
+  const canvas = document.getElementById('qrCanvas');
+  if(video.readyState === video.HAVE_ENOUGH_DATA && video.videoWidth>0){
+    const vw = video.videoWidth, vh = video.videoHeight;
+    // Wrap ditampilkan sebagai kotak persegi (aspect-ratio:1/1) dengan object-fit:cover.
+    // Hitung area video asli yang benar-benar tampil (setelah crop oleh 'cover'), lalu ambil
+    // sub-area sesuai kotak panduan putih (qrScanBox, inset 14%) agar hanya area itu yang dipindai.
+    // Ini mengurangi gangguan objek lain di sekitar QR dan mempercepat deteksi.
+    const side = Math.min(vw, vh);
+    const offsetX = (vw - side) / 2;
+    const offsetY = (vh - side) / 2;
+    const inset = side * 0.14;
+    const sx = offsetX + inset;
+    const sy = offsetY + inset;
+    const sSize = side - inset * 2;
+
+    canvas.width = sSize;
+    canvas.height = sSize;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, sx, sy, sSize, sSize, 0, 0, sSize, sSize);
+    const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const code = (typeof jsQR === 'function') ? jsQR(imgData.data, imgData.width, imgData.height, {inversionAttempts:'attemptBoth'}) : null;
+    if(code && code.data){
+      qrHandleResult(code.data.trim());
+      return;
+    }
+  }
+  qrRafId = requestAnimationFrame(qrScanLoop);
+}
+
+function qrHandleResult(text){
+  closeQrModal();
+  if(!text){
+    toast('QR terbaca tapi kosong');
+    return;
+  }
+  const locInput = document.getElementById('locInput');
+  locInput.value = text;
+  toast('QR terbaca: ' + text);
+  const exact = allLocationIds.find(id=>id.toUpperCase() === text.toUpperCase());
+  if(exact){
+    document.getElementById('locResults').innerHTML = '';
+    openLocation(exact);
+  } else {
+    locInput.dispatchEvent(new Event('input'));
+  }
+}
+
+document.getElementById('btnScanQr').addEventListener('click', openQrModal);
+document.getElementById('qrModalClose').addEventListener('click', closeQrModal);
+document.getElementById('qrModalCancel').addEventListener('click', closeQrModal);
+document.getElementById('qrModalOverlay').addEventListener('click', function(e){
+  if(e.target===this) closeQrModal();
+});
+
+function openLocation(locId){
+  const bucket = stockByLocation[locId];
+  if(!bucket){
+    toast('Lokasi tidak ditemukan pada data SOH yang diimpor');
+    return;
+  }
+  currentLocId = locId;
+  // check if there is unsaved-but-previously-saved data for this location, restore fisik values
+  const prevSaved = savedLocations[locId];
+  const prevFisikMap = {};
+  if(prevSaved){
+    prevSaved.items.forEach(it=>{ prevFisikMap[it.itemNo] = it.fisik; });
+  }
+  currentItems = Object.values(bucket.items).map(it=>({
+    locId: locId,
+    category: it.category,
+    itemNo: it.itemNo,
+    barcode: it.barcode,
+    desc: it.desc,
+    uom: it.uom,
+    soh: it.soh,
+    fisik: prevFisikMap.hasOwnProperty(it.itemNo) ? prevFisikMap[it.itemNo] : '',
+    manual: false
+  }));
+  // restore manually-added items from previous save that are not part of base SOH bucket
+  if(prevSaved){
+    prevSaved.items.forEach(it=>{
+      if(it.manual && !bucket.items[it.itemNo]){
+        currentItems.push({...it});
+      }
+    });
+  }
+  document.getElementById('curLocLabel').textContent = locId;
+  renderItemTable();
+  document.getElementById('locModalOverlay').classList.add('show');
+  // Kosongkan field pencarian & daftar saran agar siap untuk mulai cari lokasi baru
+  const locInputEl = document.getElementById('locInput');
+  if(locInputEl) locInputEl.value = '';
+  const locResultsEl = document.getElementById('locResults');
+  if(locResultsEl) locResultsEl.innerHTML = '';
+}
+function closeLocModal(){
+  document.getElementById('locModalOverlay').classList.remove('show');
+}
+document.getElementById('locModalClose').addEventListener('click', closeLocModal);
+document.getElementById('locModalOverlay').addEventListener('click', function(e){
+  if(e.target===this) closeLocModal();
+});
+
+function renderItemTable(){
+  const tbody = document.getElementById('itemTableBody');
+  tbody.innerHTML = currentItems.map((it, idx)=>{
+    const ket = computeKet(it.soh, it.fisik);
+    return `<tr data-idx="${idx}">
+      <td>${it.locId}</td>
+      <td>${it.category}</td>
+      <td>${it.itemNo}${it.manual?' <span class="badge">baru</span>':''}</td>
+      <td>${it.barcode}</td>
+      <td>${it.desc}</td>
+      <td>${it.uom}</td>
+      <td style="text-align:right;">${fmtNum(it.soh)}</td>
+      <td class="fisik-cell"><input type="number" inputmode="numeric" class="fisik-input" data-idx="${idx}" value="${it.fisik}" min="0" step="1"></td>
+      <td class="ket-cell">${ketBadge(ket)}</td>
+    </tr>`;
+  }).join('');
+  tbody.querySelectorAll('.fisik-input').forEach(inp=>{
+    inp.addEventListener('input', function(){
+      const idx = Number(this.dataset.idx);
+      currentItems[idx].fisik = this.value === '' ? '' : Number(this.value);
+      const ket = computeKet(currentItems[idx].soh, currentItems[idx].fisik);
+      const row = this.closest('tr');
+      row.querySelector('.ket-cell').innerHTML = ketBadge(ket);
+    });
+  });
+}
+
+document.getElementById('btnResetLoc').addEventListener('click', function(){
+  currentItems.forEach(it=>it.fisik='');
+  renderItemTable();
+  toast('Input fisik direset');
+});
+
+/* ================= SAVE LOKASI ================= */
+document.getElementById('btnSaveLoc').addEventListener('click', function(){
+  if(!currentLocId){ return; }
+  const missing = currentItems.filter(it=>it.fisik==='');
+  if(missing.length>0){
+    if(!confirm(`${missing.length} item belum diisi Fisik. Item tersebut akan dianggap 0 (belum dihitung). Lanjutkan simpan?`)){
+      return;
+    }
+  }
+  const items = currentItems.map(it=>{
+    const fisik = it.fisik === '' ? 0 : Number(it.fisik);
+    return {...it, fisik, ket: computeKet(it.soh, fisik)};
+  });
+  const totalItem = items.length;
+  const totalSOH = items.reduce((s,it)=>s+Number(it.soh||0),0);
+  const totalFisik = items.reduce((s,it)=>s+Number(it.fisik||0),0);
+  const summaryKet = computeKet(totalSOH, totalFisik) || 'HIT';
+  savedLocations[currentLocId] = {
+    locId: currentLocId,
+    items: items,
+    summary: {totalItem, totalSOH, totalFisik, ket: summaryKet},
+    savedAt: new Date().toISOString()
+  };
+  persistProgress();
+  renderSummaryTable();
+  toast(`Lokasi ${currentLocId} berhasil disimpan`);
+  closeLocModal();
+});
+
+/* ================= ADD ITEM MODAL ================= */
+const modalOverlay = document.getElementById('modalOverlay');
+document.getElementById('btnAddItem').addEventListener('click', function(){
+  if(!currentLocId){ toast('Pilih lokasi terlebih dahulu'); return; }
+  if(masterItemList.length===0){ toast('Import Master Item terlebih dahulu'); return; }
+  openModal();
+});
+function openModal(){
+  selectedModalItem = null;
+  document.getElementById('modalSearchInput').value='';
+  document.getElementById('modalResults').innerHTML='';
+  document.getElementById('modalStepSearch').classList.remove('hidden');
+  document.getElementById('modalStepQty').classList.add('hidden');
+  document.getElementById('modalBack').style.display='none';
+  document.getElementById('modalSave').style.display='none';
+  modalOverlay.classList.add('show');
+  setTimeout(()=>document.getElementById('modalSearchInput').focus(),50);
+}
+function closeModal(){ modalOverlay.classList.remove('show'); }
+document.getElementById('modalClose').addEventListener('click', closeModal);
+document.getElementById('modalCancel').addEventListener('click', closeModal);
+modalOverlay.addEventListener('click', function(e){ if(e.target===modalOverlay) closeModal(); });
+
+let searchDebounce = null;
+document.getElementById('modalSearchInput').addEventListener('input', function(){
+  clearTimeout(searchDebounce);
+  const q = this.value.trim().toUpperCase();
+  searchDebounce = setTimeout(()=>{
+    const box = document.getElementById('modalResults');
+    if(q.length < 3){
+      box.innerHTML = '<div class="small-note">Ketik minimal 3 karakter untuk mencari.</div>';
+      return;
+    }
+    const matches = masterItemList.filter(it=>
+      it.itemNo.toUpperCase().includes(q) ||
+      it.barcode.toUpperCase().includes(q) ||
+      String(it.desc).toUpperCase().includes(q)
+    ).slice(0,30);
+    if(matches.length===0){
+      box.innerHTML = '<div class="small-note">Tidak ada item ditemukan.</div>';
+      return;
+    }
+    box.innerHTML = matches.map((it,i)=>`
+      <div class="search-result" data-i="${i}">
+        <div class="code">${it.itemNo} &middot; ${it.barcode}</div>
+        <div class="desc">${it.desc}</div>
+        <div class="meta">${it.category} &middot; UOM: ${it.uom}</div>
+      </div>`).join('');
+    box.querySelectorAll('.search-result').forEach(el=>{
+      el.addEventListener('click', ()=>{
+        selectedModalItem = matches[Number(el.dataset.i)];
+        showQtyStep();
+      });
+    });
+  }, 250);
+});
+
+function showQtyStep(){
+  document.getElementById('modalStepSearch').classList.add('hidden');
+  document.getElementById('modalStepQty').classList.remove('hidden');
+  document.getElementById('modalBack').style.display='inline-block';
+  document.getElementById('modalSave').style.display='inline-block';
+  document.getElementById('selectedItemBox').innerHTML = `
+    <div class="code" style="color:var(--navy);font-weight:700;">${selectedModalItem.itemNo} &middot; ${selectedModalItem.barcode}</div>
+    <div>${selectedModalItem.desc}</div>
+    <div class="meta">${selectedModalItem.category} &middot; UOM: ${selectedModalItem.uom}</div>`;
+  document.getElementById('modalQtyInput').value='';
+  setTimeout(()=>document.getElementById('modalQtyInput').focus(),50);
+}
+document.getElementById('modalBack').addEventListener('click', function(){
+  document.getElementById('modalStepSearch').classList.remove('hidden');
+  document.getElementById('modalStepQty').classList.add('hidden');
+  this.style.display='none';
+  document.getElementById('modalSave').style.display='none';
+});
+document.getElementById('modalSave').addEventListener('click', function(){
+  if(!selectedModalItem){ return; }
+  const qty = Number(document.getElementById('modalQtyInput').value);
+  if(!document.getElementById('modalQtyInput').value || isNaN(qty) || qty<0){
+    toast('Isi qty fisik dengan angka yang valid'); return;
+  }
+  const dup = currentItems.find(it=>it.itemNo===selectedModalItem.itemNo);
+  if(dup){
+    toast('Item sudah ada di tabel lokasi ini. Edit langsung kolom Fisik pada baris tersebut.');
+    closeModal();
+    return;
+  }
+  currentItems.push({
+    locId: currentLocId,
+    category: selectedModalItem.category,
+    itemNo: selectedModalItem.itemNo,
+    barcode: selectedModalItem.barcode,
+    desc: selectedModalItem.desc,
+    uom: selectedModalItem.uom,
+    soh: 0,
+    fisik: qty,
+    manual: true
+  });
+  renderItemTable();
+  closeModal();
+  toast('Item baru ditambahkan ke tabel sampling');
+});
+
+/* ================= SUMMARY TABLE ================= */
+function renderSummaryTable(){
+  const tbody = document.getElementById('summaryTableBody');
+  const locs = Object.values(savedLocations).sort((a,b)=>a.locId.localeCompare(b.locId));
+  tbody.innerHTML = locs.map(loc=>{
+    const s = loc.summary;
+    return `<tr>
+      <td>${loc.locId}</td>
+      <td style="text-align:right;">${fmtNum(s.totalItem)}</td>
+      <td style="text-align:right;">${fmtNum(s.totalSOH)}</td>
+      <td style="text-align:right;">${fmtNum(s.totalFisik)}</td>
+      <td>${ketBadge(s.ket)}</td>
+      <td>${new Date(loc.savedAt).toLocaleString('id-ID')}</td>
+      <td class="summary-actions">
+        <button class="btn-outline btn-sm" onclick="editLoc('${loc.locId}')">Edit</button>
+        <button class="btn-danger btn-sm" onclick="deleteLoc('${loc.locId}')">Hapus</button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  const totalLoc = locs.length;
+  const totalItem = locs.reduce((s,l)=>s+l.summary.totalItem,0);
+  const hit = locs.filter(l=>l.summary.ket==='HIT').length;
+  const miss = locs.filter(l=>l.summary.ket==='MISS').length;
+  const over = locs.filter(l=>l.summary.ket==='OVER').length;
+  const pctAkurasi = totalLoc>0 ? Math.round((hit/totalLoc)*1000)/10 : 0;
+  document.getElementById('summaryStats').innerHTML = `
+    <div class="stat-box"><div class="num">${totalLoc}</div><div class="lbl">Lokasi Disampling</div></div>
+    <div class="stat-box"><div class="num">${totalItem}</div><div class="lbl">Total Item</div></div>
+    <div class="stat-box"><div class="num" style="color:var(--hit);">${hit}</div><div class="lbl">Lokasi HIT</div></div>
+    <div class="stat-box"><div class="num" style="color:var(--hit);">${totalLoc>0 ? pctAkurasi.toLocaleString('id-ID') : '0'}%</div><div class="lbl">% Akurasi (HIT / Lokasi Sampling)</div></div>
+    <div class="stat-box"><div class="num" style="color:var(--miss);">${miss}</div><div class="lbl">Lokasi MISS</div></div>
+    <div class="stat-box"><div class="num" style="color:var(--over);">${over}</div><div class="lbl">Lokasi OVER</div></div>
+    ${wtbdKpiStatBoxesHtml()}
+  `;
+}
+window.editLoc = function(locId){
+  document.getElementById('locInput').value = locId;
+  openLocation(locId);
+};
+window.deleteLoc = function(locId){
+  if(!confirm(`Hapus data sampling untuk lokasi ${locId}?`)) return;
+  delete savedLocations[locId];
+  persistProgress();
+  renderSummaryTable();
+  toast('Data lokasi dihapus');
+};
+document.getElementById('btnClearAll').addEventListener('click', function(){
+  if(!confirm('Hapus SEMUA data sampling yang sudah disimpan? Tindakan ini tidak dapat dibatalkan.')) return;
+  savedLocations = {};
+  persistProgress();
+  renderSummaryTable();
+  toast('Semua data sampling dihapus');
+});
+
+/* ================= EXPORT: CSV ================= */
+function csvEscape(v){
+  v = String(v===undefined||v===null?'':v);
+  if(/[",\n;]/.test(v)) return '"' + v.replace(/"/g,'""') + '"';
+  return v;
+}
+function downloadBlob(content, filename, mime){
+  const blob = new Blob([content], {type:mime});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href=url; a.download=filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+document.getElementById('btnExportCsv').addEventListener('click', function(){
+  const locs = Object.values(savedLocations).sort((a,b)=>a.locId.localeCompare(b.locId));
+  if(locs.length===0){ toast('Belum ada lokasi yang disimpan'); return; }
+  const lines = [];
+
+  // ============ 1. SUMMARY KPI ============
+  lines.push(csvEscape('LAPORAN SAMPLING AKURASI LOKASI'));
+  lines.push(csvEscape('MITRA10 Tallasa City Makassar - Support Back TLC'));
+  lines.push(csvEscape('Tanggal cetak: ' + new Date().toLocaleString('id-ID')));
+  lines.push(csvEscape('Nama Executor: ' + (executorName || '-')));
+  lines.push('');
+  lines.push(csvEscape('1. SUMMARY KPI'));
+  const kpiHeader = ['Kategori','Total Lokasi','Lokasi Tersampling','% Tersampling','Total Item','HIT','MISS','OVER','% Akurasi'];
+  lines.push(kpiHeader.join(';'));
+  computeKpiGridFull().forEach(k=>{
+    lines.push([k.label, k.totalCount, k.sampledCount, k.pctSampled.toLocaleString('id-ID')+'%',
+      k.totalItem, k.hit, k.miss, k.over, k.pctAkurasi.toLocaleString('id-ID')+'%'].map(csvEscape).join(';'));
+  });
+  lines.push('');
+
+  // ============ 2. SUMMARY LOKASI ============
+  lines.push(csvEscape('2. SUMMARY LOKASI'));
+  const sumHeader = ['No. Lokasi','Total Item','Total Qty SOH','Total Qty Fisik','Ket','Tanggal Sampling'];
+  lines.push(sumHeader.join(';'));
+  locs.forEach(loc=>{
+    lines.push([loc.locId,loc.summary.totalItem,loc.summary.totalSOH,loc.summary.totalFisik,loc.summary.ket,
+      new Date(loc.savedAt).toLocaleString('id-ID')].map(csvEscape).join(';'));
+  });
+  lines.push('');
+
+  // ============ 3. DETAIL LOKASI (bersambung, semua lokasi dalam 1 tabel) ============
+  lines.push(csvEscape('3. DETAIL LOKASI'));
+  const detHeader = ['No. Lokasi','Category','Item No','Barcode No','Item Description','Base UOM','SOH','Fisik','Ket'];
+  lines.push(detHeader.join(';'));
+  locs.forEach(loc=>{
+    loc.items.forEach(it=>{
+      lines.push([loc.locId,it.category,it.itemNo,it.barcode,it.desc,it.uom,it.soh,it.fisik,it.ket]
+        .map(csvEscape).join(';'));
+    });
+  });
+
+  downloadBlob('\uFEFF'+lines.join('\n'), `Laporan_Sampling_Akurasi_${dateStamp()}.csv`, 'text/csv;charset=utf-8;');
+});
+function dateStamp(){
+  const d = new Date();
+  const pad = n=>String(n).padStart(2,'0');
+  return `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}`;
+}
+
+/* ================= EXPORT: PDF ================= */
+document.getElementById('btnExportPdf').addEventListener('click', function(){
+  const locs = Object.values(savedLocations).sort((a,b)=>a.locId.localeCompare(b.locId));
+  if(locs.length===0){ toast('Belum ada lokasi yang disimpan'); return; }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({orientation:'landscape', unit:'pt', format:'a4'});
+  const margin = 30;
+
+  doc.setFontSize(13);
+  doc.setTextColor(20,20,20);
+  doc.text('LAPORAN SAMPLING AKURASI LOKASI', margin, 30);
+  doc.setFontSize(9);
+  doc.text('MITRA10 Tallasa City Makassar - Support Back TLC', margin, 45);
+  doc.text('Tanggal cetak: ' + new Date().toLocaleString('id-ID'), margin, 58);
+  doc.text('Nama Executor: ' + (executorName || '-'), margin, 70);
+
+  // ============ 1. SUMMARY KPI ============
+  doc.setFontSize(11);
+  doc.text('1. Summary KPI', margin, 88);
+  const kpiRows = computeKpiGridFull().map(k=>[
+    k.label, fmtNum(k.totalCount), fmtNum(k.sampledCount), k.pctSampled.toLocaleString('id-ID')+'%',
+    fmtNum(k.totalItem), fmtNum(k.hit), fmtNum(k.miss), fmtNum(k.over), k.pctAkurasi.toLocaleString('id-ID')+'%'
+  ]);
+  doc.autoTable({
+    startY: 96,
+    margin: {left:margin, right:margin},
+    head: [['Kategori','Total Lokasi','Tersampling','% Tersampling','Total Item','HIT','MISS','OVER','% Akurasi']],
+    body: kpiRows,
+    theme:'grid',
+    styles:{fontSize:8, cellPadding:3, lineColor:[210,210,210], lineWidth:0.4, textColor:[20,20,20]},
+    headStyles:{fillColor:[255,255,255], textColor:[20,20,20], fontStyle:'bold', lineColor:[20,20,20], lineWidth:0.6},
+    alternateRowStyles:{fillColor:[255,255,255]}
+  });
+
+  // ============ 2. SUMMARY LOKASI ============
+  let y2 = doc.lastAutoTable.finalY + 20;
+  doc.setFontSize(11);
+  doc.text('2. Summary Lokasi', margin, y2);
+  doc.autoTable({
+    startY: y2 + 8,
+    margin: {left:margin, right:margin},
+    head: [['No. Lokasi','Total Item','Total Qty SOH','Total Qty Fisik','Ket','Tgl Sampling']],
+    body: locs.map(l=>[l.locId, l.summary.totalItem, fmtNum(l.summary.totalSOH), fmtNum(l.summary.totalFisik), l.summary.ket, new Date(l.savedAt).toLocaleString('id-ID')]),
+    theme:'grid',
+    styles:{fontSize:8, cellPadding:3, lineColor:[210,210,210], lineWidth:0.4, textColor:[20,20,20]},
+    headStyles:{fillColor:[255,255,255], textColor:[20,20,20], fontStyle:'bold', lineColor:[20,20,20], lineWidth:0.6},
+    alternateRowStyles:{fillColor:[255,255,255]}
+  });
+
+  // ============ 3. DETAIL LOKASI (bersambung dalam 1 tabel, tanpa page-break per lokasi) ============
+  let y3 = doc.lastAutoTable.finalY + 20;
+  doc.setFontSize(11);
+  doc.text('3. Detail Lokasi', margin, y3);
+  const detailBody = [];
+  locs.forEach(loc=>{
+    loc.items.forEach(it=>{
+      detailBody.push([loc.locId, it.category, it.itemNo, it.barcode, it.desc, it.uom, fmtNum(it.soh), fmtNum(it.fisik), it.ket]);
+    });
+  });
+  doc.autoTable({
+    startY: y3 + 8,
+    margin: {left:margin, right:margin},
+    head: [['No. Lokasi','Category','Item No','Barcode No','Item Description','UOM','SOH','Fisik','Ket']],
+    body: detailBody,
+    theme:'grid',
+    styles:{fontSize:7.5, cellPadding:2.5, lineColor:[210,210,210], lineWidth:0.4, textColor:[20,20,20]},
+    headStyles:{fillColor:[255,255,255], textColor:[20,20,20], fontStyle:'bold', lineColor:[20,20,20], lineWidth:0.6},
+    alternateRowStyles:{fillColor:[255,255,255]},
+    showHead:'everyPage'
+  });
+
+  doc.save(`Laporan_Sampling_Akurasi_${dateStamp()}.pdf`);
+});
+
+/* ================= WHATSAPP SHARE ================= */
+document.getElementById('btnShareWA').addEventListener('click', function(){
+  const locs = Object.values(savedLocations).sort((a,b)=>a.locId.localeCompare(b.locId));
+  if(locs.length===0){ toast('Belum ada lokasi yang disimpan'); return; }
+  let msg = `*LAPORAN SAMPLING AKURASI LOKASI*\n`;
+  msg += `MITRA10 Tallasa City Makassar\n`;
+  msg += `Tanggal: ${new Date().toLocaleString('id-ID')}\n`;
+  msg += `Nama Executor: ${executorName || '-'}\n\n`;
+
+  // ============ 1. SUMMARY KPI ============
+  msg += `*1. SUMMARY KPI*\n`;
+  computeKpiGridFull().forEach(k=>{
+    msg += `_${k.label}_\n`;
+    msg += `Tersampling: ${fmtNum(k.sampledCount)}/${fmtNum(k.totalCount)} (${k.pctSampled.toLocaleString('id-ID')}%) | Total Item: ${fmtNum(k.totalItem)} | HIT: ${fmtNum(k.hit)} MISS: ${fmtNum(k.miss)} OVER: ${fmtNum(k.over)} | Akurasi: ${k.pctAkurasi.toLocaleString('id-ID')}%\n`;
+  });
+  msg += `\n`;
+
+  // ============ 2. SUMMARY LOKASI ============
+  msg += `*2. SUMMARY LOKASI*\n`;
+  locs.forEach(l=>{
+    msg += `- ${l.locId}: ${l.summary.totalItem} item, SOH ${fmtNum(l.summary.totalSOH)}, Fisik ${fmtNum(l.summary.totalFisik)} (${l.summary.ket})\n`;
+  });
+
+  // ============ 3. DETAIL LOKASI ============
+  msg += `\n*3. DETAIL LOKASI*\n`;
+  msg += `Detail per item (Category, Item No, Barcode, SOH, Fisik, Ket) tersedia lengkap secara bersambung pada file PDF/CSV terlampir.`;
+
+  const url = 'https://wa.me/?text=' + encodeURIComponent(msg);
+  window.open(url, '_blank');
+});
+
+/* ================= INIT ================= */
+loadProgress();
+loadExecutor();
+renderSummaryTable();
+updateImportBadge();
+</script>
+</body>
+</html>
