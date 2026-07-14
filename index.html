@@ -270,16 +270,26 @@ a.link-btn{text-decoration:none;}
       </div>
     </div>
 
+    <div class="field" style="max-width:340px;margin-bottom:12px;">
+      <label>Nama Executor</label>
+      <div style="display:flex;gap:8px;align-items:stretch;">
+        <input type="text" id="executorInput" placeholder="Ketik nama pelaksana sampling..." autocomplete="off" style="flex:1;">
+        <button type="button" class="btn-primary" id="btnStartExecutor" style="white-space:nowrap;">Mulai</button>
+      </div>
+      <div class="small-note" id="executorHint">Isi nama executor lalu tekan "Mulai" untuk mengaktifkan input No. Lokasi.</div>
+    </div>
+
     <div class="field" style="max-width:340px;position:relative;">
       <label>Storage Location Id</label>
       <div style="display:flex;gap:8px;align-items:stretch;">
-        <input type="text" id="locInput" placeholder="Ketik minimal 3 karakter..." autocomplete="off" style="flex:1;">
-        <button type="button" class="btn-secondary" id="btnScanQr" style="white-space:nowrap;padding:0 14px;" title="Scan QR No. Lokasi">▦ Scan QR</button>
+        <input type="text" id="locInput" placeholder="Ketik minimal 3 karakter..." autocomplete="off" style="flex:1;" disabled>
+        <button type="button" class="btn-secondary" id="btnScanQr" style="white-space:nowrap;padding:0 14px;" title="Scan QR No. Lokasi" disabled>▦ Scan QR</button>
       </div>
       <div id="locResults" style="margin-top:8px;"></div>
     </div>
-    <div class="small-note" id="locHint">Import data SOH terlebih dahulu untuk mulai sampling. Ketik No. Lokasi, lalu pilih dari daftar saran yang muncul, atau tekan tombol "Scan QR" untuk memindai QR label lokasi.</div>
+    <div class="small-note" id="locHint">Isi Nama Executor dan tekan "Mulai" terlebih dahulu. Setelah aktif, ketik No. Lokasi, lalu pilih dari daftar saran yang muncul, atau tekan tombol "Scan QR" untuk memindai QR label lokasi.</div>
   </div>
+
 
   <!-- SUMMARY LOKASI TERSAMPLING -->
   <div class="card">
@@ -415,7 +425,9 @@ let currentLocId = null;
 let currentItems = [];      // working array for current location table
 let selectedModalItem = null;
 const LS_KEY = 'sampling_akurasi_progress_v1';
+const LS_EXECUTOR_KEY = 'sampling_akurasi_executor_v1';
 let savedLocations = {};    // persisted result { locId: {items, summary, savedAt} }
+let executorName = '';
 
 /* ============ KONFIGURASI GOOGLE SHEET (sudah ditanam langsung) ============
    Link "Publish to web" (format Excel/xlsx) dari Google Sheets sudah ditanam
@@ -688,6 +700,57 @@ document.querySelectorAll('#wtbdFilter .chip').forEach(function(btn){
     renderSummaryTable();
     document.getElementById('locInput').dispatchEvent(new Event('input'));
   });
+});
+
+/* ================= NAMA EXECUTOR - AKTIVASI INPUT NO. LOKASI ================= */
+function setExecutorActiveUI(active){
+  const locInputEl = document.getElementById('locInput');
+  const btnScanQrEl = document.getElementById('btnScanQr');
+  const execInputEl = document.getElementById('executorInput');
+  const btnStartEl = document.getElementById('btnStartExecutor');
+  const hintEl = document.getElementById('locHint');
+  if(active){
+    locInputEl.disabled = false;
+    btnScanQrEl.disabled = false;
+    execInputEl.disabled = true;
+    btnStartEl.textContent = 'Ganti';
+    hintEl.textContent = `Executor aktif: ${executorName}. Ketik No. Lokasi, lalu pilih dari daftar saran yang muncul, atau tekan tombol "Scan QR" untuk memindai QR label lokasi.`;
+  } else {
+    locInputEl.disabled = true;
+    btnScanQrEl.disabled = true;
+    execInputEl.disabled = false;
+    btnStartEl.textContent = 'Mulai';
+    hintEl.textContent = 'Isi Nama Executor dan tekan "Mulai" terlebih dahulu. Setelah aktif, ketik No. Lokasi, lalu pilih dari daftar saran yang muncul, atau tekan tombol "Scan QR" untuk memindai QR label lokasi.';
+  }
+}
+function loadExecutor(){
+  try{
+    const saved = localStorage.getItem(LS_EXECUTOR_KEY);
+    if(saved){
+      executorName = saved;
+      document.getElementById('executorInput').value = executorName;
+      setExecutorActiveUI(true);
+    }
+  }catch(e){ /* ignore */ }
+}
+document.getElementById('btnStartExecutor').addEventListener('click', function(){
+  const btn = this;
+  if(btn.textContent === 'Mulai'){
+    const val = document.getElementById('executorInput').value.trim();
+    if(!val){ toast('Isi Nama Executor terlebih dahulu'); return; }
+    executorName = val;
+    try{ localStorage.setItem(LS_EXECUTOR_KEY, executorName); }catch(e){}
+    setExecutorActiveUI(true);
+    toast(`Executor aktif: ${executorName}`);
+    document.getElementById('locInput').focus();
+  } else {
+    if(!confirm('Ganti Nama Executor? Input No. Lokasi akan dinonaktifkan sampai nama baru dimasukkan.')) return;
+    executorName = '';
+    try{ localStorage.removeItem(LS_EXECUTOR_KEY); }catch(e){}
+    document.getElementById('executorInput').value = '';
+    setExecutorActiveUI(false);
+    document.getElementById('executorInput').focus();
+  }
 });
 
 /* ================= GRID KPI LENGKAP (ALL / W / C / D) - dipakai untuk 1 laporan utama ================= */
@@ -1138,6 +1201,7 @@ document.getElementById('btnExportCsv').addEventListener('click', function(){
   lines.push(csvEscape('LAPORAN SAMPLING AKURASI LOKASI'));
   lines.push(csvEscape('MITRA10 Tallasa City Makassar - Support Back TLC'));
   lines.push(csvEscape('Tanggal cetak: ' + new Date().toLocaleString('id-ID')));
+  lines.push(csvEscape('Nama Executor: ' + (executorName || '-')));
   lines.push('');
   lines.push(csvEscape('1. SUMMARY KPI'));
   const kpiHeader = ['Kategori','Total Lokasi','Lokasi Tersampling','% Tersampling','Total Item','HIT','MISS','OVER','% Akurasi'];
@@ -1191,16 +1255,17 @@ document.getElementById('btnExportPdf').addEventListener('click', function(){
   doc.setFontSize(9);
   doc.text('MITRA10 Tallasa City Makassar - Support Back TLC', margin, 45);
   doc.text('Tanggal cetak: ' + new Date().toLocaleString('id-ID'), margin, 58);
+  doc.text('Nama Executor: ' + (executorName || '-'), margin, 70);
 
   // ============ 1. SUMMARY KPI ============
   doc.setFontSize(11);
-  doc.text('1. Summary KPI', margin, 76);
+  doc.text('1. Summary KPI', margin, 88);
   const kpiRows = computeKpiGridFull().map(k=>[
     k.label, fmtNum(k.totalCount), fmtNum(k.sampledCount), k.pctSampled.toLocaleString('id-ID')+'%',
     fmtNum(k.totalItem), fmtNum(k.hit), fmtNum(k.miss), fmtNum(k.over), k.pctAkurasi.toLocaleString('id-ID')+'%'
   ]);
   doc.autoTable({
-    startY: 84,
+    startY: 96,
     margin: {left:margin, right:margin},
     head: [['Kategori','Total Lokasi','Tersampling','% Tersampling','Total Item','HIT','MISS','OVER','% Akurasi']],
     body: kpiRows,
@@ -1256,7 +1321,8 @@ document.getElementById('btnShareWA').addEventListener('click', function(){
   if(locs.length===0){ toast('Belum ada lokasi yang disimpan'); return; }
   let msg = `*LAPORAN SAMPLING AKURASI LOKASI*\n`;
   msg += `MITRA10 Tallasa City Makassar\n`;
-  msg += `Tanggal: ${new Date().toLocaleString('id-ID')}\n\n`;
+  msg += `Tanggal: ${new Date().toLocaleString('id-ID')}\n`;
+  msg += `Nama Executor: ${executorName || '-'}\n\n`;
 
   // ============ 1. SUMMARY KPI ============
   msg += `*1. SUMMARY KPI*\n`;
@@ -1282,6 +1348,7 @@ document.getElementById('btnShareWA').addEventListener('click', function(){
 
 /* ================= INIT ================= */
 loadProgress();
+loadExecutor();
 renderSummaryTable();
 updateImportBadge();
 </script>
