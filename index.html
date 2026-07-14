@@ -7,6 +7,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsQR/1.4.0/jsQR.js"></script>
 <style>
 :root{
   --navy:#0f2a4a;
@@ -115,7 +116,19 @@ thead th{
 tbody td{padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:middle;}
 tbody tr:hover{background:#f4f7fb;}
 .tablewrap{max-height:460px;overflow:auto;border:1px solid var(--line);border-radius:8px;}
-.fisik-input{width:80px;padding:5px 6px;border:1px solid var(--line);border-radius:6px;text-align:right;}
+input.fisik-input{
+  width:100%;
+  min-width:96px;
+  padding:12px 10px;
+  border:1.5px solid var(--line);
+  border-radius:8px;
+  text-align:right;
+  font-size:17px;
+  font-weight:600;
+  color:var(--text);
+}
+input.fisik-input:focus{border-color:var(--navy);box-shadow:0 0 0 3px rgba(15,42,74,0.12);}
+td.fisik-cell{min-width:110px;}
 .ket{font-weight:700;padding:3px 10px;border-radius:20px;font-size:11.5px;display:inline-block;min-width:46px;text-align:center;}
 .ket-hit{background:#e3f4e6;color:var(--hit);}
 .ket-miss{background:#fdeceb;color:var(--miss);}
@@ -127,6 +140,14 @@ tbody tr:hover{background:#f4f7fb;}
 .stat-box{background:var(--navy-soft);border-radius:8px;padding:10px 12px;}
 .stat-box .num{font-size:20px;font-weight:700;color:var(--navy);}
 .stat-box .lbl{font-size:11px;color:var(--muted);}
+.filter-chips{display:flex;gap:8px;flex-wrap:wrap;}
+.chip{
+  background:#fff;border:1.5px solid var(--navy);color:var(--navy);
+  border-radius:20px;padding:8px 14px;font-size:12.5px;font-weight:600;
+  cursor:pointer;transition:background .15s,color .15s;
+}
+.chip:active{opacity:.8;}
+.chip.active{background:var(--navy);color:#fff;}
 .modal-overlay{
   position:fixed;inset:0;background:rgba(8,27,50,.55);
   display:none;align-items:center;justify-content:center;z-index:100;padding:16px;
@@ -238,12 +259,26 @@ a.link-btn{text-decoration:none;}
   <!-- INPUT LOKASI -->
   <div class="card">
     <h2>2. Input No. Lokasi</h2>
+
+    <div class="field" style="margin-bottom:12px;">
+      <label>Filter WTBD</label>
+      <div class="filter-chips" id="wtbdFilter">
+        <button type="button" class="chip active" data-filter="ALL">Semua</button>
+        <button type="button" class="chip" data-filter="W">Warehouse (W)</button>
+        <button type="button" class="chip" data-filter="C">Topper (C)</button>
+        <button type="button" class="chip" data-filter="D">Display (D)</button>
+      </div>
+    </div>
+
     <div class="field" style="max-width:340px;position:relative;">
       <label>Storage Location Id</label>
-      <input type="text" id="locInput" placeholder="Ketik minimal 3 karakter..." autocomplete="off">
+      <div style="display:flex;gap:8px;align-items:stretch;">
+        <input type="text" id="locInput" placeholder="Ketik minimal 3 karakter..." autocomplete="off" style="flex:1;">
+        <button type="button" class="btn-secondary" id="btnScanQr" style="white-space:nowrap;padding:0 14px;" title="Scan QR No. Lokasi">▦ Scan QR</button>
+      </div>
       <div id="locResults" style="margin-top:8px;"></div>
     </div>
-    <div class="small-note" id="locHint">Import data SOH terlebih dahulu untuk mulai sampling. Ketik No. Lokasi, lalu pilih dari daftar saran yang muncul.</div>
+    <div class="small-note" id="locHint">Import data SOH terlebih dahulu untuk mulai sampling. Ketik No. Lokasi, lalu pilih dari daftar saran yang muncul, atau tekan tombol "Scan QR" untuk memindai QR label lokasi.</div>
   </div>
 
   <!-- SUMMARY LOKASI TERSAMPLING -->
@@ -269,9 +304,8 @@ a.link-btn{text-decoration:none;}
       </table>
     </div>
     <div class="footer-actions" style="margin-top:14px;">
-      <button class="btn-outline" id="btnExportPdf">Download PDF</button>
-      <button class="btn-outline" id="btnExportCsvDetail">Download CSV (Detail)</button>
-      <button class="btn-outline" id="btnExportCsvSummary">Download CSV (Summary)</button>
+      <button class="btn-outline" id="btnExportPdf">Download PDF (Laporan Lengkap)</button>
+      <button class="btn-outline" id="btnExportCsv">Download CSV (Laporan Lengkap)</button>
       <button class="btn-secondary" id="btnShareWA">Kirim via WhatsApp</button>
       <button class="btn-danger" id="btnClearAll">Hapus Semua Data Sampling</button>
     </div>
@@ -299,7 +333,7 @@ a.link-btn{text-decoration:none;}
               <th>Item Description</th>
               <th>Base UOM</th>
               <th>SOH</th>
-              <th>Fisik</th>
+              <th style="min-width:110px;">Fisik</th>
               <th>Ket</th>
             </tr>
           </thead>
@@ -345,6 +379,27 @@ a.link-btn{text-decoration:none;}
       <button class="btn-outline btn-sm" id="modalBack" style="display:none;">&larr; Kembali</button>
       <button class="btn-danger btn-sm" id="modalCancel">Batal</button>
       <button class="btn-primary btn-sm" id="modalSave" style="display:none;">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL SCAN QR NO. LOKASI -->
+<div class="modal-overlay" id="qrModalOverlay">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-head">
+      <h3>Scan QR No. Lokasi</h3>
+      <button class="close-x" id="qrModalClose">&times;</button>
+    </div>
+    <div class="modal-body" style="padding:0;">
+      <div id="qrVideoWrap" style="position:relative;background:#000;width:100%;aspect-ratio:1/1;overflow:hidden;">
+        <video id="qrVideo" playsinline muted style="width:100%;height:100%;object-fit:cover;display:block;"></video>
+        <div id="qrScanBox" style="position:absolute;inset:14%;border:3px solid #fff;border-radius:12px;box-shadow:0 0 0 2000px rgba(0,0,0,.35);pointer-events:none;"></div>
+      </div>
+      <canvas id="qrCanvas" class="hidden"></canvas>
+      <div class="small-note" id="qrStatus" style="padding:12px 18px 0;">Arahkan kamera ke QR label No. Lokasi.</div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn-danger btn-sm" id="qrModalCancel">Tutup</button>
     </div>
   </div>
 </div>
@@ -483,6 +538,7 @@ function applyStockResult(stockMap, itemCount, sourceLabel){
   document.getElementById('impStockBox').classList.add('done');
   document.getElementById('locHint').textContent = 'Ketik No. Lokasi lalu pilih dari daftar saran yang muncul.';
   updateImportBadge();
+  renderSummaryTable();
 }
 function applyMasterResult(list, sourceLabel){
   masterItemList = list;
@@ -601,6 +657,67 @@ async function syncFromGoogleSheet(){
 }
 document.getElementById('btnSyncSheet').addEventListener('click', syncFromGoogleSheet);
 
+/* ================= FILTER WTBD & KPI % SAMPLING ================= */
+const WTBD_LABEL = { W:'Warehouse', C:'Topper', D:'Display' };
+let activeLocFilter = 'ALL'; // 'ALL' | 'W' | 'C' | 'D'
+
+function matchesLocFilter(locId, filter){
+  if(filter==='ALL') return true;
+  return locId.toUpperCase().startsWith(filter);
+}
+function filterLocIds(ids, filter){
+  if(filter==='ALL') return ids;
+  return ids.filter(id=>matchesLocFilter(id, filter));
+}
+function wtbdKpiStatBoxesHtml(){
+  const totalIds = filterLocIds(allLocationIds, activeLocFilter);
+  const totalCount = totalIds.length;
+  const sampledCount = Object.keys(savedLocations).filter(id=>matchesLocFilter(id, activeLocFilter)).length;
+  const pct = totalCount>0 ? Math.round((sampledCount/totalCount)*1000)/10 : 0;
+  const label = activeLocFilter==='ALL' ? 'Semua Lokasi' : `${WTBD_LABEL[activeLocFilter]} (${activeLocFilter})`;
+  return `
+    <div class="stat-box"><div class="num">${totalCount>0 ? pct.toLocaleString('id-ID') : '0'}%</div><div class="lbl">% Tersampling &ndash; ${label}</div></div>
+    <div class="stat-box"><div class="num">${fmtNum(sampledCount)} / ${fmtNum(totalCount)}</div><div class="lbl">Lokasi Tersampling / Total (${label})</div></div>
+  `;
+}
+document.querySelectorAll('#wtbdFilter .chip').forEach(function(btn){
+  btn.addEventListener('click', function(){
+    document.querySelectorAll('#wtbdFilter .chip').forEach(b=>b.classList.remove('active'));
+    this.classList.add('active');
+    activeLocFilter = this.dataset.filter;
+    renderSummaryTable();
+    document.getElementById('locInput').dispatchEvent(new Event('input'));
+  });
+});
+
+/* ================= GRID KPI LENGKAP (ALL / W / C / D) - dipakai untuk 1 laporan utama ================= */
+function computeKpiGridFull(){
+  const keys = ['ALL','W','C','D'];
+  return keys.map(key=>{
+    const totalIds = filterLocIds(allLocationIds, key);
+    const totalCount = totalIds.length;
+    const sampledIds = Object.keys(savedLocations).filter(id=>matchesLocFilter(id, key));
+    const sampledCount = sampledIds.length;
+    const pctSampled = totalCount>0 ? Math.round((sampledCount/totalCount)*1000)/10 : 0;
+    const locs = sampledIds.map(id=>savedLocations[id]);
+    const totalItem = locs.reduce((s,l)=>s+l.summary.totalItem,0);
+    const totalSOH = locs.reduce((s,l)=>s+l.summary.totalSOH,0);
+    const totalFisik = locs.reduce((s,l)=>s+l.summary.totalFisik,0);
+    const hit = locs.filter(l=>l.summary.ket==='HIT').length;
+    const miss = locs.filter(l=>l.summary.ket==='MISS').length;
+    const over = locs.filter(l=>l.summary.ket==='OVER').length;
+    const pctAkurasi = sampledCount>0 ? Math.round((hit/sampledCount)*1000)/10 : 0;
+    return {
+      key,
+      label: key==='ALL' ? 'Semua Lokasi' : `${WTBD_LABEL[key]} (${key})`,
+      totalCount, sampledCount, pctSampled,
+      totalItem, totalSOH, totalFisik,
+      hit, miss, over, pctAkurasi
+    };
+  });
+}
+
+
 /* ================= CARI & PILIH LOKASI (suggestion, seperti pencarian item) ================= */
 let locSearchDebounce = null;
 document.getElementById('locInput').addEventListener('input', function(){
@@ -612,13 +729,14 @@ document.getElementById('locInput').addEventListener('input', function(){
       box.innerHTML = '<div class="small-note">Import data SOH per lokasi terlebih dahulu.</div>';
       return;
     }
+    const pool = filterLocIds(allLocationIds, activeLocFilter);
     if(q.length < 3){
       box.innerHTML = '';
       return;
     }
-    const matches = allLocationIds.filter(id=>id.toUpperCase().includes(q)).slice(0,30);
+    const matches = pool.filter(id=>id.toUpperCase().includes(q)).slice(0,30);
     if(matches.length===0){
-      box.innerHTML = '<div class="small-note">Lokasi tidak ditemukan.</div>';
+      box.innerHTML = '<div class="small-note">Lokasi tidak ditemukan pada filter WTBD yang aktif.</div>';
       return;
     }
     box.innerHTML = matches.map(id=>{
@@ -637,6 +755,95 @@ document.getElementById('locInput').addEventListener('input', function(){
       });
     });
   }, 200);
+});
+
+/* ================= SCAN QR NO. LOKASI ================= */
+let qrStream = null;
+let qrRafId = null;
+let qrScanning = false;
+
+function qrSetStatus(msg){
+  const el = document.getElementById('qrStatus');
+  if(el) el.textContent = msg;
+}
+
+async function openQrModal(){
+  document.getElementById('qrModalOverlay').classList.add('show');
+  qrSetStatus('Meminta izin akses kamera...');
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    qrSetStatus('Kamera tidak didukung di browser/halaman ini. Pastikan halaman diakses via https, lalu coba lagi.');
+    return;
+  }
+  try{
+    qrStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' } },
+      audio: false
+    });
+  }catch(err){
+    console.error(err);
+    qrSetStatus('Gagal mengakses kamera: ' + err.message + '. Pastikan izin kamera diizinkan dan halaman dibuka via https.');
+    return;
+  }
+  const video = document.getElementById('qrVideo');
+  video.srcObject = qrStream;
+  await video.play();
+  qrSetStatus('Arahkan kamera ke QR label No. Lokasi.');
+  qrScanning = true;
+  qrScanLoop();
+}
+
+function closeQrModal(){
+  qrScanning = false;
+  if(qrRafId) cancelAnimationFrame(qrRafId);
+  if(qrStream){
+    qrStream.getTracks().forEach(t=>t.stop());
+    qrStream = null;
+  }
+  document.getElementById('qrModalOverlay').classList.remove('show');
+}
+
+function qrScanLoop(){
+  if(!qrScanning) return;
+  const video = document.getElementById('qrVideo');
+  const canvas = document.getElementById('qrCanvas');
+  if(video.readyState === video.HAVE_ENOUGH_DATA && video.videoWidth>0){
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const code = (typeof jsQR === 'function') ? jsQR(imgData.data, imgData.width, imgData.height) : null;
+    if(code && code.data){
+      qrHandleResult(code.data.trim());
+      return;
+    }
+  }
+  qrRafId = requestAnimationFrame(qrScanLoop);
+}
+
+function qrHandleResult(text){
+  closeQrModal();
+  if(!text){
+    toast('QR terbaca tapi kosong');
+    return;
+  }
+  const locInput = document.getElementById('locInput');
+  locInput.value = text;
+  toast('QR terbaca: ' + text);
+  const exact = allLocationIds.find(id=>id.toUpperCase() === text.toUpperCase());
+  if(exact){
+    document.getElementById('locResults').innerHTML = '';
+    openLocation(exact);
+  } else {
+    locInput.dispatchEvent(new Event('input'));
+  }
+}
+
+document.getElementById('btnScanQr').addEventListener('click', openQrModal);
+document.getElementById('qrModalClose').addEventListener('click', closeQrModal);
+document.getElementById('qrModalCancel').addEventListener('click', closeQrModal);
+document.getElementById('qrModalOverlay').addEventListener('click', function(e){
+  if(e.target===this) closeQrModal();
 });
 
 function openLocation(locId){
@@ -674,6 +881,11 @@ function openLocation(locId){
   document.getElementById('curLocLabel').textContent = locId;
   renderItemTable();
   document.getElementById('locModalOverlay').classList.add('show');
+  // Kosongkan field pencarian & daftar saran agar siap untuk mulai cari lokasi baru
+  const locInputEl = document.getElementById('locInput');
+  if(locInputEl) locInputEl.value = '';
+  const locResultsEl = document.getElementById('locResults');
+  if(locResultsEl) locResultsEl.innerHTML = '';
 }
 function closeLocModal(){
   document.getElementById('locModalOverlay').classList.remove('show');
@@ -695,7 +907,7 @@ function renderItemTable(){
       <td>${it.desc}</td>
       <td>${it.uom}</td>
       <td style="text-align:right;">${fmtNum(it.soh)}</td>
-      <td><input type="number" class="fisik-input" data-idx="${idx}" value="${it.fisik}" min="0" step="1"></td>
+      <td class="fisik-cell"><input type="number" inputmode="numeric" class="fisik-input" data-idx="${idx}" value="${it.fisik}" min="0" step="1"></td>
       <td class="ket-cell">${ketBadge(ket)}</td>
     </tr>`;
   }).join('');
@@ -873,12 +1085,15 @@ function renderSummaryTable(){
   const hit = locs.filter(l=>l.summary.ket==='HIT').length;
   const miss = locs.filter(l=>l.summary.ket==='MISS').length;
   const over = locs.filter(l=>l.summary.ket==='OVER').length;
+  const pctAkurasi = totalLoc>0 ? Math.round((hit/totalLoc)*1000)/10 : 0;
   document.getElementById('summaryStats').innerHTML = `
     <div class="stat-box"><div class="num">${totalLoc}</div><div class="lbl">Lokasi Disampling</div></div>
     <div class="stat-box"><div class="num">${totalItem}</div><div class="lbl">Total Item</div></div>
     <div class="stat-box"><div class="num" style="color:var(--hit);">${hit}</div><div class="lbl">Lokasi HIT</div></div>
+    <div class="stat-box"><div class="num" style="color:var(--hit);">${totalLoc>0 ? pctAkurasi.toLocaleString('id-ID') : '0'}%</div><div class="lbl">% Akurasi (HIT / Lokasi Sampling)</div></div>
     <div class="stat-box"><div class="num" style="color:var(--miss);">${miss}</div><div class="lbl">Lokasi MISS</div></div>
     <div class="stat-box"><div class="num" style="color:var(--over);">${over}</div><div class="lbl">Lokasi OVER</div></div>
+    ${wtbdKpiStatBoxesHtml()}
   `;
 }
 window.editLoc = function(locId){
@@ -914,29 +1129,47 @@ function downloadBlob(content, filename, mime){
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
-document.getElementById('btnExportCsvDetail').addEventListener('click', function(){
+document.getElementById('btnExportCsv').addEventListener('click', function(){
   const locs = Object.values(savedLocations).sort((a,b)=>a.locId.localeCompare(b.locId));
   if(locs.length===0){ toast('Belum ada lokasi yang disimpan'); return; }
-  const header = ['No. Lokasi','Category','Item No','Barcode No','Item Description','Base UOM','SOH','Fisik','Ket'];
-  const lines = [header.join(';')];
+  const lines = [];
+
+  // ============ 1. SUMMARY KPI ============
+  lines.push(csvEscape('LAPORAN SAMPLING AKURASI LOKASI'));
+  lines.push(csvEscape('MITRA10 Tallasa City Makassar - Support Back TLC'));
+  lines.push(csvEscape('Tanggal cetak: ' + new Date().toLocaleString('id-ID')));
+  lines.push('');
+  lines.push(csvEscape('1. SUMMARY KPI'));
+  const kpiHeader = ['Kategori','Total Lokasi','Lokasi Tersampling','% Tersampling','Total Item','HIT','MISS','OVER','% Akurasi'];
+  lines.push(kpiHeader.join(';'));
+  computeKpiGridFull().forEach(k=>{
+    lines.push([k.label, k.totalCount, k.sampledCount, k.pctSampled.toLocaleString('id-ID')+'%',
+      k.totalItem, k.hit, k.miss, k.over, k.pctAkurasi.toLocaleString('id-ID')+'%'].map(csvEscape).join(';'));
+  });
+  lines.push('');
+
+  // ============ 2. SUMMARY LOKASI ============
+  lines.push(csvEscape('2. SUMMARY LOKASI'));
+  const sumHeader = ['No. Lokasi','Total Item','Total Qty SOH','Total Qty Fisik','Ket','Tanggal Sampling'];
+  lines.push(sumHeader.join(';'));
+  locs.forEach(loc=>{
+    lines.push([loc.locId,loc.summary.totalItem,loc.summary.totalSOH,loc.summary.totalFisik,loc.summary.ket,
+      new Date(loc.savedAt).toLocaleString('id-ID')].map(csvEscape).join(';'));
+  });
+  lines.push('');
+
+  // ============ 3. DETAIL LOKASI (bersambung, semua lokasi dalam 1 tabel) ============
+  lines.push(csvEscape('3. DETAIL LOKASI'));
+  const detHeader = ['No. Lokasi','Category','Item No','Barcode No','Item Description','Base UOM','SOH','Fisik','Ket'];
+  lines.push(detHeader.join(';'));
   locs.forEach(loc=>{
     loc.items.forEach(it=>{
       lines.push([loc.locId,it.category,it.itemNo,it.barcode,it.desc,it.uom,it.soh,it.fisik,it.ket]
         .map(csvEscape).join(';'));
     });
   });
-  downloadBlob('\uFEFF'+lines.join('\n'), `Sampling_Akurasi_Detail_${dateStamp()}.csv`, 'text/csv;charset=utf-8;');
-});
-document.getElementById('btnExportCsvSummary').addEventListener('click', function(){
-  const locs = Object.values(savedLocations).sort((a,b)=>a.locId.localeCompare(b.locId));
-  if(locs.length===0){ toast('Belum ada lokasi yang disimpan'); return; }
-  const header = ['No. Lokasi','Total Item','Total Qty SOH','Total Qty Fisik','Ket','Tanggal Sampling'];
-  const lines = [header.join(';')];
-  locs.forEach(loc=>{
-    lines.push([loc.locId,loc.summary.totalItem,loc.summary.totalSOH,loc.summary.totalFisik,loc.summary.ket,
-      new Date(loc.savedAt).toLocaleString('id-ID')].map(csvEscape).join(';'));
-  });
-  downloadBlob('\uFEFF'+lines.join('\n'), `Sampling_Akurasi_Summary_${dateStamp()}.csv`, 'text/csv;charset=utf-8;');
+
+  downloadBlob('\uFEFF'+lines.join('\n'), `Laporan_Sampling_Akurasi_${dateStamp()}.csv`, 'text/csv;charset=utf-8;');
 });
 function dateStamp(){
   const d = new Date();
@@ -959,16 +1192,30 @@ document.getElementById('btnExportPdf').addEventListener('click', function(){
   doc.text('MITRA10 Tallasa City Makassar - Support Back TLC', margin, 45);
   doc.text('Tanggal cetak: ' + new Date().toLocaleString('id-ID'), margin, 58);
 
-  const totalLoc = locs.length;
-  const totalItem = locs.reduce((s,l)=>s+l.summary.totalItem,0);
-  const hit = locs.filter(l=>l.summary.ket==='HIT').length;
-  const miss = locs.filter(l=>l.summary.ket==='MISS').length;
-  const over = locs.filter(l=>l.summary.ket==='OVER').length;
-  doc.setFontSize(9);
-  doc.text(`Total Lokasi: ${totalLoc}   |   Total Item: ${totalItem}   |   HIT: ${hit}   |   MISS: ${miss}   |   OVER: ${over}`, margin, 72);
-
+  // ============ 1. SUMMARY KPI ============
+  doc.setFontSize(11);
+  doc.text('1. Summary KPI', margin, 76);
+  const kpiRows = computeKpiGridFull().map(k=>[
+    k.label, fmtNum(k.totalCount), fmtNum(k.sampledCount), k.pctSampled.toLocaleString('id-ID')+'%',
+    fmtNum(k.totalItem), fmtNum(k.hit), fmtNum(k.miss), fmtNum(k.over), k.pctAkurasi.toLocaleString('id-ID')+'%'
+  ]);
   doc.autoTable({
-    startY: 82,
+    startY: 84,
+    margin: {left:margin, right:margin},
+    head: [['Kategori','Total Lokasi','Tersampling','% Tersampling','Total Item','HIT','MISS','OVER','% Akurasi']],
+    body: kpiRows,
+    theme:'grid',
+    styles:{fontSize:8, cellPadding:3, lineColor:[210,210,210], lineWidth:0.4, textColor:[20,20,20]},
+    headStyles:{fillColor:[255,255,255], textColor:[20,20,20], fontStyle:'bold', lineColor:[20,20,20], lineWidth:0.6},
+    alternateRowStyles:{fillColor:[255,255,255]}
+  });
+
+  // ============ 2. SUMMARY LOKASI ============
+  let y2 = doc.lastAutoTable.finalY + 20;
+  doc.setFontSize(11);
+  doc.text('2. Summary Lokasi', margin, y2);
+  doc.autoTable({
+    startY: y2 + 8,
     margin: {left:margin, right:margin},
     head: [['No. Lokasi','Total Item','Total Qty SOH','Total Qty Fisik','Ket','Tgl Sampling']],
     body: locs.map(l=>[l.locId, l.summary.totalItem, fmtNum(l.summary.totalSOH), fmtNum(l.summary.totalFisik), l.summary.ket, new Date(l.savedAt).toLocaleString('id-ID')]),
@@ -978,22 +1225,26 @@ document.getElementById('btnExportPdf').addEventListener('click', function(){
     alternateRowStyles:{fillColor:[255,255,255]}
   });
 
+  // ============ 3. DETAIL LOKASI (bersambung dalam 1 tabel, tanpa page-break per lokasi) ============
+  let y3 = doc.lastAutoTable.finalY + 20;
+  doc.setFontSize(11);
+  doc.text('3. Detail Lokasi', margin, y3);
+  const detailBody = [];
   locs.forEach(loc=>{
-    doc.addPage();
-    doc.setFontSize(11);
-    doc.text(`Kertas Kerja Sampling - Lokasi: ${loc.locId}`, margin, 30);
-    doc.setFontSize(8.5);
-    doc.text(`Total Item: ${loc.summary.totalItem}   Total SOH: ${fmtNum(loc.summary.totalSOH)}   Total Fisik: ${fmtNum(loc.summary.totalFisik)}   Ket: ${loc.summary.ket}`, margin, 42);
-    doc.autoTable({
-      startY: 52,
-      margin: {left:margin, right:margin},
-      head: [['Category','Item No','Barcode No','Item Description','UOM','SOH','Fisik','Ket']],
-      body: loc.items.map(it=>[it.category, it.itemNo, it.barcode, it.desc, it.uom, fmtNum(it.soh), fmtNum(it.fisik), it.ket]),
-      theme:'grid',
-      styles:{fontSize:7.5, cellPadding:2.5, lineColor:[210,210,210], lineWidth:0.4, textColor:[20,20,20]},
-      headStyles:{fillColor:[255,255,255], textColor:[20,20,20], fontStyle:'bold', lineColor:[20,20,20], lineWidth:0.6},
-      alternateRowStyles:{fillColor:[255,255,255]}
+    loc.items.forEach(it=>{
+      detailBody.push([loc.locId, it.category, it.itemNo, it.barcode, it.desc, it.uom, fmtNum(it.soh), fmtNum(it.fisik), it.ket]);
     });
+  });
+  doc.autoTable({
+    startY: y3 + 8,
+    margin: {left:margin, right:margin},
+    head: [['No. Lokasi','Category','Item No','Barcode No','Item Description','UOM','SOH','Fisik','Ket']],
+    body: detailBody,
+    theme:'grid',
+    styles:{fontSize:7.5, cellPadding:2.5, lineColor:[210,210,210], lineWidth:0.4, textColor:[20,20,20]},
+    headStyles:{fillColor:[255,255,255], textColor:[20,20,20], fontStyle:'bold', lineColor:[20,20,20], lineWidth:0.6},
+    alternateRowStyles:{fillColor:[255,255,255]},
+    showHead:'everyPage'
   });
 
   doc.save(`Laporan_Sampling_Akurasi_${dateStamp()}.pdf`);
@@ -1003,26 +1254,28 @@ document.getElementById('btnExportPdf').addEventListener('click', function(){
 document.getElementById('btnShareWA').addEventListener('click', function(){
   const locs = Object.values(savedLocations).sort((a,b)=>a.locId.localeCompare(b.locId));
   if(locs.length===0){ toast('Belum ada lokasi yang disimpan'); return; }
-  const totalLoc = locs.length;
-  const totalItem = locs.reduce((s,l)=>s+l.summary.totalItem,0);
-  const totalSOH = locs.reduce((s,l)=>s+l.summary.totalSOH,0);
-  const totalFisik = locs.reduce((s,l)=>s+l.summary.totalFisik,0);
-  const hit = locs.filter(l=>l.summary.ket==='HIT').length;
-  const miss = locs.filter(l=>l.summary.ket==='MISS').length;
-  const over = locs.filter(l=>l.summary.ket==='OVER').length;
   let msg = `*LAPORAN SAMPLING AKURASI LOKASI*\n`;
   msg += `MITRA10 Tallasa City Makassar\n`;
   msg += `Tanggal: ${new Date().toLocaleString('id-ID')}\n\n`;
-  msg += `Total Lokasi Disampling: ${totalLoc}\n`;
-  msg += `Total Item: ${totalItem}\n`;
-  msg += `Total Qty SOH: ${fmtNum(totalSOH)}\n`;
-  msg += `Total Qty Fisik: ${fmtNum(totalFisik)}\n`;
-  msg += `HIT: ${hit} | MISS: ${miss} | OVER: ${over}\n\n`;
-  msg += `Detail per lokasi:\n`;
+
+  // ============ 1. SUMMARY KPI ============
+  msg += `*1. SUMMARY KPI*\n`;
+  computeKpiGridFull().forEach(k=>{
+    msg += `_${k.label}_\n`;
+    msg += `Tersampling: ${fmtNum(k.sampledCount)}/${fmtNum(k.totalCount)} (${k.pctSampled.toLocaleString('id-ID')}%) | Total Item: ${fmtNum(k.totalItem)} | HIT: ${fmtNum(k.hit)} MISS: ${fmtNum(k.miss)} OVER: ${fmtNum(k.over)} | Akurasi: ${k.pctAkurasi.toLocaleString('id-ID')}%\n`;
+  });
+  msg += `\n`;
+
+  // ============ 2. SUMMARY LOKASI ============
+  msg += `*2. SUMMARY LOKASI*\n`;
   locs.forEach(l=>{
     msg += `- ${l.locId}: ${l.summary.totalItem} item, SOH ${fmtNum(l.summary.totalSOH)}, Fisik ${fmtNum(l.summary.totalFisik)} (${l.summary.ket})\n`;
   });
-  msg += `\nFile PDF/CSV lengkap terlampir terpisah.`;
+
+  // ============ 3. DETAIL LOKASI ============
+  msg += `\n*3. DETAIL LOKASI*\n`;
+  msg += `Detail per item (Category, Item No, Barcode, SOH, Fisik, Ket) tersedia lengkap secara bersambung pada file PDF/CSV terlampir.`;
+
   const url = 'https://wa.me/?text=' + encodeURIComponent(msg);
   window.open(url, '_blank');
 });
