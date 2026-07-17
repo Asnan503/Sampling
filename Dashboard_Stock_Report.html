@@ -188,6 +188,10 @@
   .seg button:last-child{ border-right:none; }
   .seg button.active{ background:var(--navy-800); color:#fff; }
   .seg button:hover:not(.active){ background:var(--accent-dim); color:var(--navy-800); }
+  .seg button[data-type]:not([data-type="all"])::before{
+    content:'☐'; margin-right:5px; font-size:12px; display:inline-block;
+  }
+  .seg button[data-type]:not([data-type="all"]).active::before{ content:'☑'; }
   .locfilter-na{ font-family:var(--body); font-size:11.5px; color:var(--muted-2); font-style:italic; }
 
   .report-controls{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
@@ -434,7 +438,7 @@
       <div>
         <span class="tag">Laporan 04 · Grey Area</span>
         <h3>Lokasi Grey Area</h3>
-        <div class="desc">Storage Location Id yang tidak diawali huruf C (Topper), D (Display), maupun W (Warehouse) — perlu dicek ulang klasifikasi lokasinya.</div>
+        <div class="desc">Storage Location Id yang tidak diawali huruf C (Topper), D (Display), maupun W (Warehouse) — termasuk lokasi <b>Console</b> (selalu dianggap grey area meskipun idnya diawali huruf C) — perlu dicek ulang klasifikasi lokasinya.</div>
       </div>
     </div>
     <div class="report-toolbar">
@@ -543,7 +547,7 @@ let warehouseRaw = null; // array of row-objects
 let wmsNavRaw = null;
 let report1Data = [], report2Data = [], report3Data = [], report4Data = [], report5Data = [], report6Data = [];
 let filtered1 = [], filtered2 = [], filtered3 = [], filtered4 = [], filtered5 = [], filtered6 = [];
-let locType1 = 'all', locType2 = 'all', locType6 = 'all';
+let locSel1 = new Set(), locSel2 = new Set(), locSel6 = new Set();
 let catFilter1 = 'all', catFilter2 = 'all', catFilter3 = 'all', catFilter5 = 'all';
 let searchTerm4 = '', searchTerm5 = '', searchTerm6 = '';
 
@@ -555,8 +559,13 @@ function toNumber(v){
 }
 function norm(s){ return (s===null||s===undefined) ? '' : String(s).trim(); }
 
-/* Topper = starts with C, Display = starts with D, Warehouse = everything else (incl. W and anything not C/D) */
+/* Console locations must never be read as Topper — they belong in Grey Area regardless of their first letter */
+function isConsoleLocation(loc){
+  return norm(loc).toUpperCase().includes('CONSOLE');
+}
+/* Topper = starts with C (and is not a Console location), Display = starts with D, Warehouse = everything else (incl. W, Console, and anything not C/D) */
 function classifyLocation(loc){
+  if(isConsoleLocation(loc)) return 'warehouse';
   const c = norm(loc).charAt(0).toUpperCase();
   if(c === 'C') return 'topper';
   if(c === 'D') return 'display';
@@ -565,8 +574,14 @@ function classifyLocation(loc){
 function typeLabel(t){
   return t==='topper' ? 'Topper' : t==='display' ? 'Display' : 'Warehouse';
 }
-/* Grey area = not starting with C, D, or W */
+/* format a Set of selected location types for display, e.g. in PDF subtitles */
+function selTypesLabel(set){
+  if(!set || set.size===0) return 'Semua';
+  return Array.from(set).map(typeLabel).join(' + ');
+}
+/* Grey area = not starting with C, D, or W — OR a Console location (even if its id happens to start with C) */
 function isGreyArea(loc){
+  if(isConsoleLocation(loc)) return true;
   const c = norm(loc).charAt(0).toUpperCase();
   return c !== 'C' && c !== 'D' && c !== 'W';
 }
@@ -875,16 +890,17 @@ function computeInsightKPIs(){
 /* buildCategorySummary: aggregates categories from report 1/2/5, filtered by location type.
    Report 3 (item minus) has no Storage Location Id in its source file, so it is always
    included in full regardless of the topper/display/warehouse filter. */
-function buildCategorySummary(locType){
+function buildCategorySummary(selSet){
   const tally = {};
   function ensure(cat){
     if(!tally[cat]) tally[cat] = { category:cat, campur:0, sku15:0, minus:0, hold:0 };
     return tally[cat];
   }
-  report1Data.forEach(r => { if(locType==='all' || r.locType===locType) ensure(r.category).campur++; });
-  report2Data.forEach(r => { if(locType==='all' || r.locType===locType) ensure(r.category).sku15++; });
+  const match = (r) => selSet.size===0 || selSet.has(r.locType);
+  report1Data.forEach(r => { if(match(r)) ensure(r.category).campur++; });
+  report2Data.forEach(r => { if(match(r)) ensure(r.category).sku15++; });
   report3Data.forEach(r => { ensure(r.category).minus++; });
-  report5Data.forEach(r => { if(locType==='all' || r.locType===locType) ensure(r.category).hold++; });
+  report5Data.forEach(r => { if(match(r)) ensure(r.category).hold++; });
 
   const out = Object.values(tally).map(r => ({
     ...r,
@@ -896,7 +912,7 @@ function buildCategorySummary(locType){
 
 function computeReport6(){
   // full (unfiltered) dataset — used to know whether any data exists at all
-  report6Data = buildCategorySummary('all');
+  report6Data = buildCategorySummary(new Set());
 }
 
 /* ---------------- render ---------------- */
@@ -928,13 +944,13 @@ function renderAll(){
 
 function applyFilter1(){
   filtered1 = report1Data.filter(r =>
-    (locType1==='all' || r.locType===locType1) &&
+    (locSel1.size===0 || locSel1.has(r.locType)) &&
     (catFilter1==='all' || r.category===catFilter1)
   );
 }
 function applyFilter2(){
   filtered2 = report2Data.filter(r =>
-    (locType2==='all' || r.locType===locType2) &&
+    (locSel2.size===0 || locSel2.has(r.locType)) &&
     (catFilter2==='all' || r.category===catFilter2)
   );
 }
@@ -950,7 +966,7 @@ function applyFilter5(){
 }
 function applyFilter6(){
   const q = (searchTerm6||'').trim().toLowerCase();
-  const base = buildCategorySummary(locType6);
+  const base = buildCategorySummary(locSel6);
   filtered6 = !q ? base : base.filter(r => r.category.toLowerCase().includes(q));
 }
 
@@ -1058,28 +1074,27 @@ function escapeHtml(s){
   return String(s===undefined||s===null?'':s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 }
 
-/* ---------------- segmented location-type filters ---------------- */
-document.getElementById('locseg1').addEventListener('click', (e) => {
-  const btn = e.target.closest('button'); if(!btn) return;
-  document.querySelectorAll('#locseg1 button').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  locType1 = btn.dataset.type;
-  applyFilter1(); renderTable1();
-});
-document.getElementById('locseg2').addEventListener('click', (e) => {
-  const btn = e.target.closest('button'); if(!btn) return;
-  document.querySelectorAll('#locseg2 button').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  locType2 = btn.dataset.type;
-  applyFilter2(); renderTable2();
-});
-document.getElementById('locseg6').addEventListener('click', (e) => {
-  const btn = e.target.closest('button'); if(!btn) return;
-  document.querySelectorAll('#locseg6 button').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  locType6 = btn.dataset.type;
-  applyFilter6(); renderTable6();
-});
+/* ---------------- segmented location-type filters (checklist, multi-select) ---------------- */
+function wireLocSeg(segId, selSet, onChange){
+  const seg = document.getElementById(segId);
+  seg.addEventListener('click', (e) => {
+    const btn = e.target.closest('button'); if(!btn) return;
+    const type = btn.dataset.type;
+    if(type === 'all'){
+      selSet.clear();
+    }else{
+      if(selSet.has(type)) selSet.delete(type); else selSet.add(type);
+    }
+    seg.querySelectorAll('button[data-type]').forEach(b => {
+      b.classList.toggle('active', b.dataset.type === 'all' ? selSet.size===0 : selSet.has(b.dataset.type));
+    });
+    onChange();
+  });
+}
+wireLocSeg('locseg1', locSel1, () => { applyFilter1(); renderTable1(); });
+wireLocSeg('locseg2', locSel2, () => { applyFilter2(); renderTable2(); });
+wireLocSeg('locseg6', locSel6, () => { applyFilter6(); renderTable6(); });
+
 
 /* ---------------- category filter dropdowns ---------------- */
 document.getElementById('catFilter1').addEventListener('change', (e) => {
@@ -1143,7 +1158,7 @@ function exportPDF(title, subtitle, head, body, filename){
 document.getElementById('pdf1').addEventListener('click', () => {
   exportPDF(
     'Laporan Lokasi Campur Item Consignment & Retail',
-    `Sumber: Stock Warehouse By Location (WMS Store) — Filter tipe: ${locType1==='all'?'Semua':typeLabel(locType1)}`,
+    `Sumber: Stock Warehouse By Location (WMS Store) — Filter tipe: ${selTypesLabel(locSel1)}`,
     ['Category','Location','Tipe','Ttl Item Cons','Ttl Item Retail/Non Cons','Keterangan'],
     filtered1.map(r => [r.category, r.location, typeLabel(r.locType), r.ttlCons, r.ttlRetail, r.ket]),
     'Laporan_Lokasi_Campur_Consignment_Retail.pdf'
@@ -1152,7 +1167,7 @@ document.getElementById('pdf1').addEventListener('click', () => {
 document.getElementById('pdf2').addEventListener('click', () => {
   exportPDF(
     'Laporan Lokasi dengan Lebih dari 15 SKU',
-    `Sumber: Stock Warehouse By Location (WMS Store) — item consignment diabaikan — Filter tipe: ${locType2==='all'?'Semua':typeLabel(locType2)}`,
+    `Sumber: Stock Warehouse By Location (WMS Store) — item consignment diabaikan — Filter tipe: ${selTypesLabel(locSel2)}`,
     ['Category','Location','Tipe','Ttl Item','Keterangan'],
     filtered2.map(r => [r.category, r.location, typeLabel(r.locType), r.ttlItem, r.ket]),
     'Laporan_Lokasi_Lebih_15_SKU.pdf'
@@ -1188,7 +1203,7 @@ document.getElementById('pdf5').addEventListener('click', () => {
 document.getElementById('pdf6').addEventListener('click', () => {
   exportPDF(
     'Ringkasan By Category',
-    `Sumber: Laporan 01, 02, 03, dan 05 — Filter tipe lokasi: ${locType6==='all'?'Semua':typeLabel(locType6)} (Total Item Minus selalu menampilkan semua data)`,
+    `Sumber: Laporan 01, 02, 03, dan 05 — Filter tipe lokasi: ${selTypesLabel(locSel6)} (Total Item Minus selalu menampilkan semua data)`,
     ['Category','Total Lokasi Campur','Total Lokasi >15 SKU','Total Item Minus','Total Lokasi Hold','Total Kejadian'],
     filtered6.map(r => [r.category, r.campur, r.sku15, r.minus, r.hold, r.total]),
     'Ringkasan_By_Category.pdf'
