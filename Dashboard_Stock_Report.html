@@ -340,7 +340,7 @@
       <div>
         <span class="tag">Laporan 01</span>
         <h3>Lokasi Campur Item Consignment &amp; Retail</h3>
-        <div class="desc">Storage Location Id yang menyimpan item consignment (deskripsi diawali "C/") bercampur dengan item retail/non-consignment.</div>
+        <div class="desc">Storage Location Id yang menyimpan item consignment (deskripsi mengandung "C/" di mana pun posisinya) bercampur dengan item retail/non-consignment.</div>
       </div>
     </div>
     <div class="report-toolbar">
@@ -720,7 +720,7 @@ function computeReport1and2(){
 
     const desc = norm(r['Item Description']).toUpperCase();
     const itemNo = norm(r['Item No']);
-    const isCons = desc.startsWith('C/');
+    const isCons = desc.includes('C/');
     if(isCons){
       locMap[loc].consItems.add(itemNo);
     }else{
