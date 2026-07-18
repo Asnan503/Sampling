@@ -303,7 +303,7 @@
     <div class="kpi"><div class="n" id="kpiNeg">–</div><div class="l">Item NAV Minus Tanpa OTS NP</div></div>
     <div class="kpi grey"><div class="n" id="kpiGrey">–</div><div class="l">Lokasi Grey Area</div></div>
     <div class="kpi hold"><div class="n" id="kpiHold">–</div><div class="l">Lokasi Status Hold</div></div>
-    <div class="kpi"><div class="n" id="kpiLocTotal">–</div><div class="l">Total Storage Location Dianalisa</div></div>
+    <div class="kpi"><div class="n" id="kpiLocTotal">–</div><div class="l">Total Storage Location Dianalisa (Non-Grey)</div></div>
   </section>
 
   <div id="insightCapture">
@@ -344,7 +344,7 @@
       <div>
         <span class="tag">Laporan 01</span>
         <h3>Lokasi Campur Item Consignment &amp; Retail</h3>
-        <div class="desc">Storage Location Id yang menyimpan item consignment (deskripsi mengandung "C/" di mana pun posisinya) bercampur dengan item retail/non-consignment.</div>
+        <div class="desc">Storage Location Id yang menyimpan item consignment (deskripsi diawali "C/", "STP/C/", "DI/C/", atau "CLS/C/") bercampur dengan item retail/non-consignment. Lokasi Grey Area tidak disertakan.</div>
       </div>
     </div>
     <div class="report-toolbar">
@@ -377,7 +377,7 @@
       <div>
         <span class="tag">Laporan 02</span>
         <h3>Lokasi dengan Lebih dari 15 SKU (Non-Consignment)</h3>
-        <div class="desc">Storage Location Id dengan jumlah item (SKU unik) retail/non-consignment lebih dari 15. Item consignment diabaikan dari perhitungan.</div>
+        <div class="desc">Storage Location Id dengan jumlah item (SKU unik) retail/non-consignment lebih dari 15. Item consignment diabaikan dari perhitungan, dan lokasi Grey Area tidak disertakan.</div>
       </div>
     </div>
     <div class="report-toolbar">
@@ -586,6 +586,13 @@ function isGreyArea(loc){
   return c !== 'C' && c !== 'D' && c !== 'W';
 }
 
+/* An item is consignment if its description STARTS WITH one of these recognized tags */
+const CONSIGNMENT_PREFIXES = ['C/', 'STP/C/', 'DI/C/', 'CLS/C/'];
+function isConsignmentDesc(desc){
+  const d = norm(desc).toUpperCase();
+  return CONSIGNMENT_PREFIXES.some(p => d.startsWith(p));
+}
+
 /* pick the most frequent category from a {category: count} tally */
 function topCategory(catCountObj){
   let top='-', max=-1;
@@ -728,14 +735,14 @@ function computeReport1and2(){
   const locMap = {};
   warehouseRaw.forEach(r => {
     const loc = norm(r['Storage Location Id']);
-    if(!loc) return;
+    if(!loc || isGreyArea(loc)) return;
     if(!locMap[loc]) locMap[loc] = { catCount:{}, nonConsCatCount:{}, consItems:new Set(), retailItems:new Set() };
     const cat = norm(r['Item Category Description']) || '-';
     locMap[loc].catCount[cat] = (locMap[loc].catCount[cat]||0) + 1;
 
-    const desc = norm(r['Item Description']).toUpperCase();
+    const desc = norm(r['Item Description']);
     const itemNo = norm(r['Item No']);
-    const isCons = desc.includes('C/');
+    const isCons = isConsignmentDesc(desc);
     if(isCons){
       locMap[loc].consItems.add(itemNo);
     }else{
