@@ -95,6 +95,23 @@
   @media (max-width:640px){
     .menu-grid{ grid-template-columns:1fr; max-width:340px; }
   }
+  /* entry terakhir yang menggantung sendirian di baris terakhir otomatis center */
+  @media (min-width:981px){
+    .menu-grid > a:last-child:nth-child(3n+1){
+      grid-column:1 / -1;
+      justify-self:center;
+      width:100%;
+      max-width:320px;
+    }
+  }
+  @media (min-width:641px) and (max-width:980px){
+    .menu-grid > a:last-child:nth-child(odd){
+      grid-column:1 / -1;
+      justify-self:center;
+      width:100%;
+      max-width:320px;
+    }
+  }
 
   .menu-card{
     background:var(--white);
@@ -174,6 +191,12 @@
         <div class="num">3</div>
         <div class="icon">🧮</div>
         <div class="title">Akurasi WMS vs NAV</div>
+      </a>
+
+      <a class="menu-card" href="generator-label-qr-lokasi.html">
+        <div class="num">4</div>
+        <div class="icon">🏷️</div>
+        <div class="title">Generator Label QR Lokasi</div>
       </a>
     </div>
   </div>

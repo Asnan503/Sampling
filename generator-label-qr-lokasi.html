@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Generator Label QR Lokasi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&family=Roboto+Mono:wght@500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  :root{
+    --navy-900:#0a1f44;
+    --navy-800:#0f2a5c;
+    --navy-700:#163b7a;
+    --navy-600:#2054a3;
+    --blue-accent:#2f6fed;
+    --ink:#152036;
+    --ink-muted:#5c6b85;
+    --paper:#eef1f7;
+    --panel:#ffffff;
+    --line:#dde3ee;
+    --accent-soft:#e7edfb;
+    --warn:#c0392b;
+    --warn-soft:#fbeae7;
+    --mono: 'Roboto Mono', 'Courier New', monospace;
+    --sans: 'Roboto', 'Segoe UI', Arial, sans-serif;
+    --e1: 0 1px 2px rgba(10,31,68,0.08), 0 1px 3px rgba(10,31,68,0.10);
+    --e2: 0 2px 6px rgba(10,31,68,0.10), 0 6px 16px rgba(10,31,68,0.10);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--sans);
+    -webkit-font-smoothing:antialiased;
+  }
+  .appbar{
+    background:linear-gradient(135deg, var(--navy-900), var(--navy-700));
+    color:#fff;
+    box-shadow:var(--e2);
+    position:sticky;
+    top:0;
+    z-index:10;
+  }
+  .appbar-inner{
+    max-width:1200px;
+    margin:0 auto;
+    padding:16px 20px;
+    display:flex;
+    align-items:center;
+    gap:14px;
+  }
+  .brand-mark{
+    width:40px;
+    height:40px;
+    flex:0 0 40px;
+    border-radius:10px;
+    background:rgba(255,255,255,0.14);
+    border:1px solid rgba(255,255,255,0.28);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-family:var(--mono);
+    font-weight:700;
+    font-size:0.78rem;
+    letter-spacing:0.02em;
+  }
+  .appbar h1{
+    font-size:1.2rem;
+    font-weight:600;
+    letter-spacing:0.01em;
+    margin:0;
+  }
+  .appbar .tag{
+    font-family:var(--mono);
+    font-size:0.72rem;
+    color:rgba(255,255,255,0.72);
+    text-transform:uppercase;
+    letter-spacing:0.08em;
+  }
+  .app{
+    max-width:1200px;
+    margin:0 auto;
+    padding:24px 20px 80px;
+    counter-reset:step;
+  }
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:20px 22px;
+    margin-bottom:18px;
+    box-shadow:var(--e1);
+    transition:box-shadow 0.15s ease;
+  }
+  .panel h2{
+    counter-increment:step;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    font-size:0.92rem;
+    font-weight:600;
+    letter-spacing:0.01em;
+    color:var(--ink);
+    margin:0 0 16px;
+  }
+  .panel h2::before{
+    content:counter(step);
+    flex:0 0 26px;
+    width:26px;
+    height:26px;
+    border-radius:50%;
+    background:var(--navy-800);
+    color:#fff;
+    font-family:var(--mono);
+    font-size:0.78rem;
+    font-weight:600;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .row{
+    display:flex;
+    gap:14px;
+    flex-wrap:wrap;
+    align-items:center;
+  }
+  .field{
+    display:flex;
+    flex-direction:column;
+    gap:5px;
+  }
+  .field label{
+    font-size:0.7rem;
+    color:var(--ink-muted);
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    font-weight:500;
+  }
+  input[type=text], select{
+    font-family:var(--mono);
+    font-size:0.85rem;
+    padding:9px 11px;
+    border:1.5px solid var(--line);
+    border-radius:6px;
+    background:#fff;
+    color:var(--ink);
+    transition:border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+  input[type=text]:focus, select:focus{
+    outline:none;
+    border-color:var(--navy-600);
+    box-shadow:0 0 0 3px rgba(32,84,163,0.14);
+  }
+  input[type=file]{
+    font-family:var(--sans);
+    font-size:0.85rem;
+    color:var(--ink-muted);
+  }
+  button{
+    font-family:var(--sans);
+    font-size:0.78rem;
+    font-weight:600;
+    padding:10px 18px;
+    border-radius:8px;
+    border:1.5px solid var(--navy-900);
+    background:var(--navy-900);
+    color:#fff;
+    cursor:pointer;
+    letter-spacing:0.04em;
+    text-transform:uppercase;
+    box-shadow:var(--e1);
+    transition:box-shadow 0.15s ease, transform 0.05s ease, background 0.15s ease;
+  }
+  button:hover{ background:var(--navy-700); border-color:var(--navy-700); box-shadow:var(--e2); }
+  button:active{ transform:translateY(1px); }
+  button.secondary{
+    background:#fff;
+    color:var(--navy-900);
+    border-color:var(--line);
+    box-shadow:none;
+  }
+  button.secondary:hover{ background:var(--accent-soft); border-color:var(--navy-600); color:var(--navy-900); }
+  button.accent{
+    background:var(--blue-accent);
+    border-color:var(--blue-accent);
+  }
+  button.accent:hover{ background:var(--navy-600); border-color:var(--navy-600); }
+  button:disabled{
+    opacity:0.4;
+    cursor:not-allowed;
+    box-shadow:none;
+    transform:none;
+  }
+  .status-line{
+    font-family:var(--mono);
+    font-size:0.78rem;
+    color:var(--ink-muted);
+    margin-top:12px;
+  }
+  .status-line.err{ color:var(--warn); }
+
+  table.data{
+    width:100%;
+    border-collapse:collapse;
+    font-size:0.82rem;
+    font-family:var(--mono);
+  }
+  table.data th{
+    text-align:left;
+    font-family:var(--sans);
+    text-transform:uppercase;
+    font-size:0.68rem;
+    letter-spacing:0.06em;
+    font-weight:600;
+    color:#fff;
+    background:var(--navy-800);
+    padding:9px 10px;
+    white-space:nowrap;
+  }
+  table.data th:first-child{ border-top-left-radius:6px; }
+  table.data th:last-child{ border-top-right-radius:6px; }
+  table.data td{
+    border-bottom:1px solid var(--line);
+    padding:7px 10px;
+  }
+  table.data td[contenteditable="true"]{
+    cursor:text;
+    outline:none;
+  }
+  table.data td[contenteditable="true"]:focus{
+    background:var(--accent-soft);
+    box-shadow:inset 0 0 0 1.5px var(--navy-600);
+  }
+  table.data tr:hover{ background:#f5f8fd; }
+  .rowdel{
+    color:var(--warn);
+    cursor:pointer;
+    font-family:var(--sans);
+    font-size:0.9rem;
+    user-select:none;
+  }
+  .table-wrap{
+    max-height:340px;
+    overflow:auto;
+    border:1px solid var(--line);
+    border-radius:8px;
+  }
+  .table-wrap table.data{ margin:0; }
+  .table-wrap th{ position:sticky; top:0; }
+  .table-wrap th:first-child{ border-radius:0; }
+  .table-wrap th:last-child{ border-radius:0; }
+
+  .count-pill{
+    font-family:var(--mono);
+    font-size:0.72rem;
+    font-weight:600;
+    background:var(--accent-soft);
+    color:var(--navy-800);
+    padding:4px 12px;
+    border-radius:999px;
+    text-transform:none;
+    letter-spacing:0;
+  }
+
+  /* ---- Label sheet ----
+     Dimensi & struktur diukur langsung dari koordinat vektor PDF asli
+     (191.39pt x 101.0pt per label, border ganda 1.92pt/0.48pt,
+     QR 67.2x67.2pt membentang setinggi 3 baris, footer selebar kolom kanan saja). */
+  #sheet{
+    display:grid;
+    grid-template-columns:repeat(3, 191.39pt);
+    column-gap:3.36pt;
+    row-gap:13.92pt;
+    justify-content:start;
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:6px;
+    padding:14px;
+  }
+  .label{
+    width:191.39pt;
+    height:101pt;
+    border:1.92pt solid #333;
+    padding:1.68pt;
+    box-sizing:border-box;
+    background:#fff;
+  }
+  .label-inner{
+    width:100%;
+    height:100%;
+    border:0.48pt solid #333;
+    padding:1.44pt;
+    box-sizing:border-box;
+    display:flex;
+    flex-direction:column;
+    font-family:Helvetica, Arial, sans-serif;
+    color:#000;
+  }
+  .label-header{
+    flex:0 0 13.16pt;
+    height:13.16pt;
+    border-bottom:0.48pt solid #333;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:9.6pt;
+    font-weight:700;
+    text-align:center;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .label-body{
+    flex:1;
+    display:flex;
+    gap:1.44pt;
+    margin-top:1.44pt;
+    min-height:0;
+  }
+  .label-qr{
+    flex:0 0 73.19pt;
+    width:73.19pt;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .label-qr img, .label-qr canvas{
+    width:67.2pt!important;
+    height:67.2pt!important;
+    display:block;
+  }
+  .label-fields{
+    flex:1;
+    min-width:0;
+    display:flex;
+    flex-direction:column;
+    gap:1.44pt;
+  }
+  .frow{
+    flex:1;
+    min-height:0;
+    display:flex;
+    border:0.48pt solid #333;
+    box-sizing:border-box;
+  }
+  .flabel{
+    flex:0 0 35.88pt;
+    width:35.88pt;
+    border-right:0.48pt solid #333;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:10.1pt;
+    font-weight:700;
+    text-align:center;
+  }
+  .fvalue{
+    flex:1;
+    min-width:0;
+    display:flex;
+    align-items:center;
+    padding-left:5pt;
+    font-size:8.6pt;
+    font-weight:700;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .ffooter{
+    flex:1;
+    min-height:0;
+    border:0.48pt solid #333;
+    box-sizing:border-box;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:8.6pt;
+    font-weight:700;
+    text-align:center;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+  }
+  .empty-hint{
+    grid-column:1/-1;
+    text-align:center;
+    padding:50px 10px;
+    color:#8a8570;
+    font-size:0.9rem;
+    font-family:var(--mono);
+  }
+
+  @media print{
+    body{ background:#fff; }
+    .no-print{ display:none!important; }
+    .appbar{ display:none!important; }
+    .app{ padding:0; max-width:none; }
+    .panel{ border:none; padding:0; margin:0; box-shadow:none; }
+    #sheet{ border:none; padding:0; column-gap:3.36pt; row-gap:13.92pt; }
+    .label{ break-inside:avoid; }
+    @page{ size:A4; margin:7.2pt; }
+  }
+</style>
+</head>
+<body>
+<header class="appbar no-print">
+  <div class="appbar-inner">
+    <div class="brand-mark">QR</div>
+    <div>
+      <h1>Generator Label QR Lokasi</h1>
+      <span class="tag">Cetak QR Lokasi &middot; Bin / Rack</span>
+    </div>
+  </div>
+</header>
+<div class="app">
+
+  <section class="panel no-print">
+    <h2>Import data (.xlsx / .xls / .csv)</h2>
+    <div class="row">
+      <div class="field">
+        <label>File data lokasi</label>
+        <input type="file" id="fileInput" accept=".xlsx,.xls,.csv">
+      </div>
+      <div class="field">
+        <label>&nbsp;</label>
+        <button class="secondary" id="btnTemplate" type="button">Unduh template kosong</button>
+      </div>
+      <div class="field">
+        <label>&nbsp;</label>
+        <button class="secondary" id="btnExport" type="button" disabled>Export xlsx (data terupdate)</button>
+      </div>
+    </div>
+    <div class="status-line" id="importStatus">Belum ada file diimport. Kolom yang dikenali: Site_Id, Site_Name, Tag Bin Location, Area, Zone, Status.</div>
+  </section>
+
+  <section class="panel no-print" id="tablePanel" style="display:none;">
+    <h2>Data lokasi &nbsp;<span class="count-pill" id="countPill">0 baris</span></h2>
+    <div class="row" style="margin-bottom:12px;">
+      <div class="field">
+        <label>Cari (site / bin / zone)</label>
+        <input type="text" id="searchBox" placeholder="ketik untuk filter...">
+      </div>
+      <div class="field">
+        <label>Filter status</label>
+        <select id="statusFilter"><option value="">Semua</option></select>
+      </div>
+      <div class="field">
+        <label>&nbsp;</label>
+        <button class="secondary" id="btnAddRow" type="button">+ Tambah baris</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table class="data" id="dataTable">
+        <thead>
+          <tr>
+            <th>Site Id</th><th>Site Name</th><th>Tag Bin Location</th><th>Area</th><th>Zone</th><th>Status</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="dataBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="panel no-print" id="qrPanel" style="display:none;">
+    <h2>Format isi QR code</h2>
+    <div class="row">
+      <div class="field" style="flex:1; min-width:260px;">
+        <label>Pola teks yang di-encode ke QR (placeholder: {siteId} {siteName} {bin} {zone} {area})</label>
+        <input type="text" id="qrPattern" value="{siteId}-{bin}" style="width:100%;">
+      </div>
+      <div class="field">
+        <label>&nbsp;</label>
+        <button class="accent" id="btnGenerate" type="button">Generate label</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="sheetPanel" style="display:none;">
+    <h2 class="no-print">Preview &amp; cetak &nbsp;<span class="count-pill" id="labelCountPill">0 label</span></h2>
+    <div class="row no-print" style="margin-bottom:14px;">
+      <button id="btnPrint" type="button">Cetak / simpan PDF</button>
+      <span class="status-line" style="margin:0;">3 label per baris, sesuai tata letak contoh PDF.</span>
+    </div>
+    <div id="sheet"></div>
+  </section>
+
+</div>
+
+<script>
+let rawRows = []; // objects with keys: siteId, siteName, bin, area, zone, status
+
+const HEADER_MAP = {
+  siteId: ['site_id','siteid','site id'],
+  siteName: ['site_name','sitename','site name'],
+  bin: ['tag bin location','bin location','bin','tag_bin_location'],
+  area: ['area'],
+  zone: ['zone'],
+  status: ['status']
+};
+
+function normHeader(h){
+  return String(h||'').trim().toLowerCase();
+}
+
+function mapRow(obj){
+  const out = {siteId:'', siteName:'', bin:'', area:'', zone:'', status:''};
+  const keys = Object.keys(obj);
+  for(const target in HEADER_MAP){
+    const candidates = HEADER_MAP[target];
+    const foundKey = keys.find(k => candidates.includes(normHeader(k)));
+    if(foundKey !== undefined){
+      out[target] = String(obj[foundKey] !== undefined && obj[foundKey] !== null ? obj[foundKey] : '').trim();
+    }
+  }
+  return out;
+}
+
+const fileInput = document.getElementById('fileInput');
+const importStatus = document.getElementById('importStatus');
+const tablePanel = document.getElementById('tablePanel');
+const qrPanel = document.getElementById('qrPanel');
+const sheetPanel = document.getElementById('sheetPanel');
+const dataBody = document.getElementById('dataBody');
+const countPill = document.getElementById('countPill');
+const statusFilter = document.getElementById('statusFilter');
+const searchBox = document.getElementById('searchBox');
+const btnExport = document.getElementById('btnExport');
+
+fileInput.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (evt) => {
+    try{
+      const data = new Uint8Array(evt.target.result);
+      const wb = XLSX.read(data, {type:'array'});
+      const sheetName = wb.SheetNames[0];
+      const ws = wb.Sheets[sheetName];
+      const json = XLSX.utils.sheet_to_json(ws, {defval:''});
+      if(json.length === 0){
+        importStatus.textContent = 'File "' + file.name + '" terbaca, tapi tidak ada baris data (hanya header atau kosong).';
+        importStatus.classList.add('err');
+        return;
+      }
+      rawRows = json.map(mapRow).filter(r => r.siteId || r.siteName || r.bin);
+      importStatus.classList.remove('err');
+      importStatus.textContent = 'Berhasil import ' + rawRows.length + ' baris dari sheet "' + sheetName + '" (' + file.name + ').';
+      btnExport.disabled = false;
+      renderTable();
+      tablePanel.style.display = 'block';
+      qrPanel.style.display = 'block';
+    }catch(err){
+      importStatus.classList.add('err');
+      importStatus.textContent = 'Gagal membaca file: ' + err.message;
+    }
+  };
+  reader.readAsArrayBuffer(file);
+});
+
+function refreshStatusFilterOptions(){
+  const cur = statusFilter.value;
+  const values = Array.from(new Set(rawRows.map(r => r.status).filter(v => v !== ''))).sort();
+  statusFilter.innerHTML = '<option value="">Semua</option>' + values.map(v => `<option value="${escapeAttr(v)}">${escapeHtml(v)}</option>`).join('');
+  statusFilter.value = values.includes(cur) ? cur : '';
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function escapeAttr(s){ return escapeHtml(s); }
+
+function renderTable(){
+  refreshStatusFilterOptions();
+  const q = searchBox.value.trim().toLowerCase();
+  const st = statusFilter.value;
+  dataBody.innerHTML = '';
+  let shown = 0;
+  rawRows.forEach((row, idx) => {
+    const hay = (row.siteId + ' ' + row.siteName + ' ' + row.bin + ' ' + row.zone).toLowerCase();
+    if(q && !hay.includes(q)) return;
+    if(st && row.status !== st) return;
+    shown++;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td contenteditable="true" data-idx="${idx}" data-field="siteId">${escapeHtml(row.siteId)}</td>
+      <td contenteditable="true" data-idx="${idx}" data-field="siteName">${escapeHtml(row.siteName)}</td>
+      <td contenteditable="true" data-idx="${idx}" data-field="bin">${escapeHtml(row.bin)}</td>
+      <td contenteditable="true" data-idx="${idx}" data-field="area">${escapeHtml(row.area)}</td>
+      <td contenteditable="true" data-idx="${idx}" data-field="zone">${escapeHtml(row.zone)}</td>
+      <td contenteditable="true" data-idx="${idx}" data-field="status">${escapeHtml(row.status)}</td>
+      <td class="rowdel" data-idx="${idx}" title="hapus baris">&#10005;</td>
+    `;
+    dataBody.appendChild(tr);
+  });
+  countPill.textContent = shown + ' / ' + rawRows.length + ' baris';
+}
+
+dataBody.addEventListener('input', (e) => {
+  const t = e.target;
+  if(t.matches('td[contenteditable]')){
+    const idx = Number(t.dataset.idx);
+    const field = t.dataset.field;
+    rawRows[idx][field] = t.textContent.trim();
+    if(field === 'status'){ refreshStatusFilterOptions(); }
+  }
+});
+
+dataBody.addEventListener('click', (e) => {
+  const t = e.target;
+  if(t.matches('.rowdel')){
+    const idx = Number(t.dataset.idx);
+    rawRows.splice(idx, 1);
+    renderTable();
+  }
+});
+
+document.getElementById('btnAddRow').addEventListener('click', () => {
+  rawRows.push({siteId:'', siteName:'', bin:'', area:'', zone:'', status:''});
+  renderTable();
+});
+
+searchBox.addEventListener('input', renderTable);
+statusFilter.addEventListener('change', renderTable);
+
+document.getElementById('btnTemplate').addEventListener('click', () => {
+  const ws = XLSX.utils.json_to_sheet([
+    {Site_Id:'11000', Site_Name:'MITRA10 TLC MAKASSAR', 'Tag Bin Location':'D040300103', Area:'FLOOR DISPLAY', Zone:'PLUMBING', Status:'Active'}
+  ]);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
+  XLSX.writeFile(wb, 'template-lokasi.xlsx');
+});
+
+btnExport.addEventListener('click', () => {
+  const dataOut = rawRows.map(r => ({
+    Site_Id: r.siteId,
+    Site_Name: r.siteName,
+    'Tag Bin Location': r.bin,
+    Area: r.area,
+    Zone: r.zone,
+    Status: r.status
+  }));
+  const ws = XLSX.utils.json_to_sheet(dataOut);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
+  XLSX.writeFile(wb, 'lokasi-terupdate.xlsx');
+});
+
+function fillPattern(pattern, row){
+  return pattern
+    .replaceAll('{siteId}', row.siteId)
+    .replaceAll('{siteName}', row.siteName)
+    .replaceAll('{bin}', row.bin)
+    .replaceAll('{zone}', row.zone)
+    .replaceAll('{area}', row.area);
+}
+
+document.getElementById('btnGenerate').addEventListener('click', () => {
+  const pattern = document.getElementById('qrPattern').value || '{siteId}-{bin}';
+  const sheet = document.getElementById('sheet');
+  sheet.innerHTML = '';
+  const rowsToPrint = rawRows.filter(r => r.siteId || r.bin);
+
+  if(rowsToPrint.length === 0){
+    sheet.innerHTML = '<div class="empty-hint">Tidak ada data untuk dicetak. Cek data yang diimport.</div>';
+    sheetPanel.style.display = 'block';
+    document.getElementById('labelCountPill').textContent = '0 label';
+    return;
+  }
+
+  rowsToPrint.forEach((row, i) => {
+    const label = document.createElement('div');
+    label.className = 'label';
+    const headerText = (row.siteId ? row.siteId + ' - ' : '') + row.siteName;
+    label.innerHTML = `
+      <div class="label-inner">
+        <div class="label-header">${escapeHtml(headerText)}</div>
+        <div class="label-body">
+          <div class="label-qr" id="qr-${i}"></div>
+          <div class="label-fields">
+            <div class="frow"><div class="flabel">Zone</div><div class="fvalue">${escapeHtml(row.zone)}</div></div>
+            <div class="frow"><div class="flabel">Bin</div><div class="fvalue">${escapeHtml(row.bin)}</div></div>
+            <div class="ffooter">${escapeHtml(row.area)}</div>
+          </div>
+        </div>
+      </div>
+    `;
+    sheet.appendChild(label);
+  });
+
+  sheetPanel.style.display = 'block';
+  document.getElementById('labelCountPill').textContent = rowsToPrint.length + ' label';
+
+  // render QR codes after DOM insert
+  rowsToPrint.forEach((row, i) => {
+    const el = document.getElementById('qr-' + i);
+    if(el){
+      new QRCode(el, {
+        text: fillPattern(pattern, row) || 'N/A',
+        width: 240,
+        height: 240,
+        correctLevel: QRCode.CorrectLevel.M
+      });
+    }
+  });
+
+  sheet.scrollIntoView({behavior:'smooth', block:'start'});
+});
+
+document.getElementById('btnPrint').addEventListener('click', () => {
+  window.print();
+});
+</script>
+</body>
+</html>
