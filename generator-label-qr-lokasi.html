@@ -649,6 +649,18 @@ btnExport.addEventListener('click', () => {
   XLSX.writeFile(wb, 'lokasi-terupdate.xlsx');
 });
 
+function fitFontToWidth(el, maxPt, minPt){
+  if(!el) return;
+  el.style.whiteSpace = 'nowrap';
+  let size = maxPt;
+  el.style.fontSize = size + 'pt';
+  // paksa reflow lalu susutkan bertahap sampai muat di lebar kotaknya
+  while(el.scrollWidth > el.clientWidth && size > minPt){
+    size -= 0.2;
+    el.style.fontSize = size.toFixed(1) + 'pt';
+  }
+}
+
 document.getElementById('btnGenerate').addEventListener('click', () => {
   const sheet = document.getElementById('sheet');
   sheet.innerHTML = '';
@@ -667,11 +679,11 @@ document.getElementById('btnGenerate').addEventListener('click', () => {
     const headerText = (row.siteId ? row.siteId + ' - ' : '') + row.siteName;
     label.innerHTML = `
       <div class="label-inner">
-        <div class="label-header">${escapeHtml(headerText)}</div>
+        <div class="label-header" id="header-${i}">${escapeHtml(headerText)}</div>
         <div class="label-body">
           <div class="label-qr" id="qr-${i}"></div>
           <div class="label-fields">
-            <div class="frow"><div class="flabel">Zone</div><div class="fvalue">${escapeHtml(row.zone)}</div></div>
+            <div class="frow"><div class="flabel">Zone</div><div class="fvalue zone-value" id="zonev-${i}">${escapeHtml(row.zone)}</div></div>
             <div class="frow"><div class="flabel">Bin</div><div class="fvalue">${escapeHtml(row.bin)}</div></div>
             <div class="ffooter">${escapeHtml(row.area)}</div>
           </div>
@@ -684,7 +696,7 @@ document.getElementById('btnGenerate').addEventListener('click', () => {
   sheetPanel.style.display = 'block';
   document.getElementById('labelCountPill').textContent = rowsToPrint.length + ' label';
 
-  // render QR codes after DOM insert
+  // render QR codes + auto-fit font header & zone after DOM insert
   rowsToPrint.forEach((row, i) => {
     const el = document.getElementById('qr-' + i);
     if(el){
@@ -695,6 +707,8 @@ document.getElementById('btnGenerate').addEventListener('click', () => {
         correctLevel: QRCode.CorrectLevel.M
       });
     }
+    fitFontToWidth(document.getElementById('header-' + i), 9.6, 5);
+    fitFontToWidth(document.getElementById('zonev-' + i), 8.6, 5);
   });
 
   sheet.scrollIntoView({behavior:'smooth', block:'start'});
