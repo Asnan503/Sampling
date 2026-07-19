@@ -465,11 +465,11 @@
   </section>
 
   <section class="panel no-print" id="qrPanel" style="display:none;">
-    <h2>Format isi QR code</h2>
+    <h2>Generate QR code</h2>
     <div class="row">
       <div class="field" style="flex:1; min-width:260px;">
-        <label>Pola teks yang di-encode ke QR (placeholder: {siteId} {siteName} {bin} {zone} {area})</label>
-        <input type="text" id="qrPattern" value="{siteId}-{bin}" style="width:100%;">
+        <label>Isi QR code</label>
+        <div class="status-line" style="margin:0;">QR code hanya akan di-encode dari nilai kolom <strong>Bin</strong> pada tiap baris.</div>
       </div>
       <div class="field">
         <label>&nbsp;</label>
@@ -649,17 +649,7 @@ btnExport.addEventListener('click', () => {
   XLSX.writeFile(wb, 'lokasi-terupdate.xlsx');
 });
 
-function fillPattern(pattern, row){
-  return pattern
-    .replaceAll('{siteId}', row.siteId)
-    .replaceAll('{siteName}', row.siteName)
-    .replaceAll('{bin}', row.bin)
-    .replaceAll('{zone}', row.zone)
-    .replaceAll('{area}', row.area);
-}
-
 document.getElementById('btnGenerate').addEventListener('click', () => {
-  const pattern = document.getElementById('qrPattern').value || '{siteId}-{bin}';
   const sheet = document.getElementById('sheet');
   sheet.innerHTML = '';
   const rowsToPrint = rawRows.filter(r => r.siteId || r.bin);
@@ -699,7 +689,7 @@ document.getElementById('btnGenerate').addEventListener('click', () => {
     const el = document.getElementById('qr-' + i);
     if(el){
       new QRCode(el, {
-        text: fillPattern(pattern, row) || 'N/A',
+        text: row.bin || 'N/A',
         width: 240,
         height: 240,
         correctLevel: QRCode.CorrectLevel.M
