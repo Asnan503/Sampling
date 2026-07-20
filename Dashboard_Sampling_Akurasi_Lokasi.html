@@ -928,12 +928,23 @@ function qrScanLoop(){
   qrRafId = requestAnimationFrame(qrScanLoop);
 }
 
-function qrHandleResult(text){
+function qrHandleResult(rawText){
   closeQrModal();
-  if(!text){
+  if(!rawText){
     toast('QR terbaca tapi kosong');
     return;
   }
+  // Label lokasi mengenkode QR sebagai JSON, contoh:
+  // {"StorageLocationId":"W030110101","CheckDigit":""}
+  // Coba parse dulu; kalau bukan JSON (label lama/format lain), pakai teks asli apa adanya.
+  let text = rawText.trim();
+  try{
+    const parsed = JSON.parse(rawText);
+    if(parsed && typeof parsed === 'object' && parsed.StorageLocationId){
+      text = String(parsed.StorageLocationId).trim();
+    }
+  }catch(e){ /* bukan JSON, gunakan teks asli */ }
+
   const locInput = document.getElementById('locInput');
   locInput.value = text;
   toast('QR terbaca: ' + text);
