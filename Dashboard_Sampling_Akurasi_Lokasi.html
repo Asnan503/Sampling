@@ -427,6 +427,9 @@ let currentItems = [];      // working array for current location table
 let selectedModalItem = null;
 const LS_KEY = 'sampling_akurasi_progress_v1';
 const LS_EXECUTOR_KEY = 'sampling_akurasi_executor_v1';
+const LS_STOCK_KEY = 'sampling_akurasi_stock_v1';
+const LS_MASTER_KEY = 'sampling_akurasi_master_v1';
+const LS_SYNC_STATUS_KEY = 'sampling_akurasi_sync_status_v1';
 let savedLocations = {};    // persisted result { locId: {items, summary, savedAt} }
 let executorName = '';
 
@@ -475,6 +478,65 @@ function persistProgress(){
   try{
     localStorage.setItem(LS_KEY, JSON.stringify(savedLocations));
   }catch(e){ console.error('gagal simpan progress', e); }
+}
+function persistStockData(sourceLabel){
+  try{
+    localStorage.setItem(LS_STOCK_KEY, JSON.stringify({
+      stockByLocation: stockByLocation,
+      allLocationIds: allLocationIds,
+      sourceLabel: sourceLabel||'',
+      savedAt: new Date().toISOString()
+    }));
+  }catch(e){ console.error('gagal simpan data SOH', e); }
+}
+function persistMasterData(sourceLabel){
+  try{
+    localStorage.setItem(LS_MASTER_KEY, JSON.stringify({
+      masterItemList: masterItemList,
+      sourceLabel: sourceLabel||'',
+      savedAt: new Date().toISOString()
+    }));
+  }catch(e){ console.error('gagal simpan master item', e); }
+}
+function persistSyncStatus(text){
+  try{ localStorage.setItem(LS_SYNC_STATUS_KEY, text); }catch(e){}
+}
+function loadStockData(){
+  try{
+    const raw = localStorage.getItem(LS_STOCK_KEY);
+    if(!raw) return;
+    const data = JSON.parse(raw);
+    stockByLocation = data.stockByLocation || {};
+    allLocationIds = Object.keys(stockByLocation).sort();
+    if(allLocationIds.length>0){
+      const itemCount = Object.values(stockByLocation).reduce((sum,loc)=>sum+Object.keys(loc.items||{}).length,0);
+      const savedAtStr = data.savedAt ? new Date(data.savedAt).toLocaleString('id-ID') : '';
+      document.getElementById('impStockText').textContent =
+        `${allLocationIds.length.toLocaleString('id-ID')} lokasi, ${itemCount.toLocaleString('id-ID')} baris item unik${data.sourceLabel?' ('+data.sourceLabel+')':''}${savedAtStr?' - tersimpan '+savedAtStr:''}`;
+      document.getElementById('impStockBox').classList.add('done');
+      document.getElementById('locHint').textContent = 'Ketik No. Lokasi lalu pilih dari daftar saran yang muncul.';
+    }
+  }catch(e){ console.error('gagal load data SOH tersimpan', e); }
+}
+function loadMasterData(){
+  try{
+    const raw = localStorage.getItem(LS_MASTER_KEY);
+    if(!raw) return;
+    const data = JSON.parse(raw);
+    masterItemList = data.masterItemList || [];
+    if(masterItemList.length>0){
+      const savedAtStr = data.savedAt ? new Date(data.savedAt).toLocaleString('id-ID') : '';
+      document.getElementById('impMasterText').textContent =
+        `${masterItemList.length.toLocaleString('id-ID')} item aktif${data.sourceLabel?' ('+data.sourceLabel+')':''}${savedAtStr?' - tersimpan '+savedAtStr:''}`;
+      document.getElementById('impMasterBox').classList.add('done');
+    }
+  }catch(e){ console.error('gagal load master item tersimpan', e); }
+}
+function loadSyncStatus(){
+  try{
+    const raw = localStorage.getItem(LS_SYNC_STATUS_KEY);
+    if(raw) document.getElementById('sheetSyncStatus').textContent = raw;
+  }catch(e){}
 }
 
 /* ================= PARSING GENERIK (dipakai untuk import file & sinkron Google Sheet) ================= */
@@ -550,6 +612,7 @@ function applyStockResult(stockMap, itemCount, sourceLabel){
     `${allLocationIds.length.toLocaleString('id-ID')} lokasi, ${itemCount.toLocaleString('id-ID')} baris item unik${sourceLabel?' ('+sourceLabel+')':''}`;
   document.getElementById('impStockBox').classList.add('done');
   document.getElementById('locHint').textContent = 'Ketik No. Lokasi lalu pilih dari daftar saran yang muncul.';
+  persistStockData(sourceLabel);
   updateImportBadge();
   renderSummaryTable();
 }
@@ -558,6 +621,7 @@ function applyMasterResult(list, sourceLabel){
   document.getElementById('impMasterText').textContent =
     `${masterItemList.length.toLocaleString('id-ID')} item aktif${sourceLabel?' ('+sourceLabel+')':''}`;
   document.getElementById('impMasterBox').classList.add('done');
+  persistMasterData(sourceLabel);
   updateImportBadge();
 }
 
@@ -667,6 +731,7 @@ async function syncFromGoogleSheet(){
     statusEl.textContent = `Sinkron terakhir gagal (${now}): ${errMsgs.join(' | ')}`;
     toast('Sinkron gagal. Pastikan link publish CSV benar dan bisa diakses.');
   }
+  persistSyncStatus(statusEl.textContent);
 }
 document.getElementById('btnSyncSheet').addEventListener('click', syncFromGoogleSheet);
 
@@ -1404,6 +1469,9 @@ document.getElementById('btnShareWA').addEventListener('click', function(){
 /* ================= INIT ================= */
 loadProgress();
 loadExecutor();
+loadStockData();
+loadMasterData();
+loadSyncStatus();
 renderSummaryTable();
 updateImportBadge();
 </script>
