@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Checklist Hitung Barang — WH</title>
+<style>
+  :root{
+    --navy-900:#0b2545;
+    --navy-800:#12345f;
+    --navy-700:#1a4a80;
+    --navy-600:#2563a8;
+    --blue-accent:#2f7fd6;
+    --green:#1b8a5a;
+    --green-bg:#e6f6ee;
+    --amber:#b8860b;
+    --red:#c0392b;
+    --bg:#f3f5f8;
+    --card:#ffffff;
+    --border:#e1e6ee;
+    --text:#1c2a3a;
+    --text-dim:#5c6b7d;
+    --radius:10px;
+    --shadow:0 1px 3px rgba(11,37,69,0.08), 0 1px 2px rgba(11,37,69,0.06);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    -webkit-tap-highlight-color:transparent;
+  }
+
+  /* Header */
+  .topbar{
+    background:linear-gradient(135deg,var(--navy-900),var(--navy-700));
+    color:#fff;
+    padding:16px 16px 20px;
+    position:sticky;
+    top:0;
+    z-index:20;
+    box-shadow:var(--shadow);
+  }
+  .topbar h1{
+    margin:0 0 2px;
+    font-size:17px;
+    font-weight:700;
+    letter-spacing:.2px;
+  }
+  .topbar .sub{
+    font-size:12px;
+    color:#c7d6ea;
+    margin-bottom:14px;
+  }
+  .progress-wrap{
+    background:rgba(255,255,255,0.12);
+    border-radius:999px;
+    height:10px;
+    overflow:hidden;
+  }
+  .progress-fill{
+    height:100%;
+    background:linear-gradient(90deg,#3fd28c,#1b8a5a);
+    border-radius:999px;
+    width:0%;
+    transition:width .35s ease;
+  }
+  .progress-stats{
+    display:flex;
+    justify-content:space-between;
+    font-size:12px;
+    margin-top:6px;
+    color:#dfe9f5;
+  }
+  .progress-stats strong{color:#fff;font-size:13px;}
+
+  /* Controls */
+  .controls{
+    padding:12px 16px;
+    background:var(--card);
+    border-bottom:1px solid var(--border);
+    position:sticky;
+    top:96px;
+    z-index:19;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+  }
+  .search-row{
+    display:flex;
+    gap:8px;
+  }
+  .search-row input[type="text"]{
+    flex:1;
+    padding:10px 12px;
+    border:1px solid var(--border);
+    border-radius:8px;
+    font-size:14px;
+    background:#f8fafc;
+    color:var(--text);
+  }
+  .search-row input[type="text"]:focus{
+    outline:none;
+    border-color:var(--blue-accent);
+    background:#fff;
+  }
+  select#lorongFilter{
+    padding:10px 10px;
+    border:1px solid var(--border);
+    border-radius:8px;
+    font-size:14px;
+    background:#f8fafc;
+    color:var(--text);
+    max-width:120px;
+  }
+  .chip-row{
+    display:flex;
+    gap:6px;
+    overflow-x:auto;
+    padding-bottom:2px;
+  }
+  .chip{
+    flex:none;
+    padding:6px 12px;
+    border-radius:999px;
+    border:1px solid var(--border);
+    background:#f8fafc;
+    font-size:12px;
+    font-weight:600;
+    color:var(--text-dim);
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  .chip.active{
+    background:var(--navy-700);
+    border-color:var(--navy-700);
+    color:#fff;
+  }
+  .action-row{
+    display:flex;
+    gap:8px;
+    margin-top:2px;
+  }
+  .btn{
+    flex:1;
+    padding:9px 10px;
+    border-radius:8px;
+    border:1px solid var(--border);
+    background:#f8fafc;
+    font-size:12.5px;
+    font-weight:600;
+    color:var(--navy-800);
+    cursor:pointer;
+  }
+  .btn.primary{
+    background:var(--navy-700);
+    border-color:var(--navy-700);
+    color:#fff;
+  }
+  .btn.danger{
+    color:var(--red);
+    border-color:#f1c3bd;
+    background:#fdf2f0;
+  }
+
+  /* Tabs */
+  .tabs{
+    display:flex;
+    background:var(--card);
+    border-bottom:1px solid var(--border);
+    position:sticky;
+    top:calc(96px + 118px);
+    z-index:18;
+  }
+  .tabs button{
+    flex:1;
+    padding:11px 0;
+    background:none;
+    border:none;
+    font-size:13px;
+    font-weight:700;
+    color:var(--text-dim);
+    border-bottom:3px solid transparent;
+    cursor:pointer;
+  }
+  .tabs button.active{
+    color:var(--navy-700);
+    border-bottom-color:var(--navy-700);
+  }
+
+  main{
+    padding:12px 16px 40px;
+    max-width:760px;
+    margin:0 auto;
+  }
+
+  /* Lorong group */
+  .lorong-group{
+    background:var(--card);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    margin-bottom:10px;
+    overflow:hidden;
+    border:1px solid var(--border);
+  }
+  .lorong-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:12px 14px;
+    cursor:pointer;
+    background:#fafcff;
+  }
+  .lorong-header:active{background:#f0f4f9;}
+  .lorong-header .name{
+    font-weight:700;
+    font-size:14.5px;
+    color:var(--navy-900);
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .lorong-header .caret{
+    transition:transform .2s ease;
+    color:var(--text-dim);
+    font-size:11px;
+  }
+  .lorong-header.open .caret{transform:rotate(90deg);}
+  .lorong-header .meta{
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .lorong-count{
+    font-size:12px;
+    color:var(--text-dim);
+    font-variant-numeric:tabular-nums;
+  }
+  .mini-bar{
+    width:54px;
+    height:6px;
+    background:#e6ebf2;
+    border-radius:999px;
+    overflow:hidden;
+  }
+  .mini-bar-fill{
+    height:100%;
+    background:var(--green);
+    border-radius:999px;
+  }
+  .badge-done{
+    font-size:10.5px;
+    font-weight:700;
+    color:var(--green);
+    background:var(--green-bg);
+    padding:2px 7px;
+    border-radius:999px;
+  }
+
+  .lokasi-list{
+    display:none;
+    border-top:1px solid var(--border);
+  }
+  .lokasi-list.open{display:block;}
+  .lokasi-item{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:10px 14px;
+    border-bottom:1px solid #f0f3f7;
+    font-size:13.5px;
+  }
+  .lokasi-item:last-child{border-bottom:none;}
+  .lokasi-item.checked{background:var(--green-bg);}
+  .lokasi-item input[type="checkbox"]{
+    width:20px;
+    height:20px;
+    accent-color:var(--green);
+    flex:none;
+    cursor:pointer;
+  }
+  .lokasi-item .code{
+    font-family:"SF Mono",Consolas,monospace;
+    letter-spacing:.3px;
+    color:var(--text);
+    flex:1;
+  }
+  .lokasi-item.checked .code{
+    color:var(--green);
+    text-decoration:line-through;
+    text-decoration-color:#9fd4b8;
+  }
+  .lokasi-item .lorong-tag{
+    font-size:10.5px;
+    font-weight:700;
+    color:var(--navy-600);
+    background:#e9f1fb;
+    padding:2px 6px;
+    border-radius:5px;
+  }
+
+  .empty-state{
+    text-align:center;
+    padding:40px 20px;
+    color:var(--text-dim);
+    font-size:13.5px;
+  }
+
+  /* Recap table */
+  .recap-card{
+    background:var(--card);
+    border-radius:var(--radius);
+    box-shadow:var(--shadow);
+    border:1px solid var(--border);
+    overflow:hidden;
+    margin-bottom:14px;
+  }
+  table.recap{
+    width:100%;
+    border-collapse:collapse;
+    font-size:12.5px;
+  }
+  table.recap th{
+    background:var(--navy-800);
+    color:#fff;
+    padding:9px 8px;
+    text-align:left;
+    font-weight:600;
+    position:sticky;
+    top:0;
+  }
+  table.recap th:nth-child(2),
+  table.recap th:nth-child(3),
+  table.recap th:nth-child(4){text-align:right;}
+  table.recap td{
+    padding:8px;
+    border-bottom:1px solid #f0f3f7;
+    color:var(--text);
+  }
+  table.recap td:nth-child(2),
+  table.recap td:nth-child(3),
+  table.recap td:nth-child(4){
+    text-align:right;
+    font-variant-numeric:tabular-nums;
+  }
+  table.recap tr.total-row td{
+    background:#eef3fa;
+    font-weight:700;
+    border-top:2px solid var(--navy-700);
+  }
+  table.recap td.pct{
+    font-weight:700;
+  }
+  table.recap td.pct.full{color:var(--green);}
+  table.recap td.pct.mid{color:var(--amber);}
+  table.recap td.pct.low{color:var(--red);}
+  .recap-bar-cell{
+    width:70px;
+  }
+  .recap-mini-bar{
+    width:100%;
+    height:5px;
+    background:#e6ebf2;
+    border-radius:999px;
+    overflow:hidden;
+    margin-top:3px;
+  }
+  .recap-mini-fill{
+    height:100%;
+    background:var(--green);
+  }
+
+  .section-title{
+    font-size:12px;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:.5px;
+    color:var(--text-dim);
+    margin:14px 4px 8px;
+  }
+
+  #recapView{display:none;}
+  #toast{
+    position:fixed;
+    bottom:18px;
+    left:50%;
+    transform:translateX(-50%) translateY(20px);
+    background:var(--navy-900);
+    color:#fff;
+    padding:10px 18px;
+    border-radius:8px;
+    font-size:13px;
+    box-shadow:0 4px 14px rgba(0,0,0,0.25);
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .25s ease, transform .25s ease;
+    z-index:50;
+  }
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  footer{
+    text-align:center;
+    font-size:11px;
+    color:var(--text-dim);
+    padding:10px 0 24px;
+  }
+
+  @media (min-width:640px){
+    .lorong-list-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>Checklist Hitung Barang</h1>
+  <div class="sub">Lokasi Aktif WH — Support Back TLC</div>
+  <div class="progress-wrap"><div class="progress-fill" id="progressFill"></div></div>
+  <div class="progress-stats">
+    <span><strong id="doneCount">0</strong> / <span id="totalCount">0</span> lokasi selesai</span>
+    <strong id="pctText">0%</strong>
+  </div>
+</div>
+
+<div class="controls">
+  <div class="search-row">
+    <input type="text" id="searchInput" placeholder="Cari kode lokasi... (mis. W010010101)">
+    <select id="lorongFilter">
+      <option value="">Semua</option>
+    </select>
+  </div>
+  <div class="action-row">
+    <button class="btn" id="btnExpandAll">Buka Semua</button>
+    <button class="btn" id="btnCollapseAll">Tutup Semua</button>
+    <button class="btn danger" id="btnReset">Reset</button>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab-btn active" data-tab="checklist">Checklist</button>
+  <button class="tab-btn" data-tab="recap">Rekap</button>
+</div>
+
+<main>
+  <div id="checklistView">
+    <div class="section-title" id="listCounter">Menampilkan semua lorong</div>
+    <div id="lorongContainer"></div>
+    <div class="empty-state" id="emptyState" style="display:none;">Tidak ada lokasi yang cocok dengan pencarian.</div>
+  </div>
+
+  <div id="recapView">
+    <div class="section-title" style="display:flex;align-items:center;justify-content:space-between;">
+      <span>Rekap Progress by Lorong</span>
+      <button class="btn primary" id="btnDownloadRecapPng" style="flex:none;padding:7px 14px;">⬇ Download PNG</button>
+    </div>
+    <div class="recap-card">
+      <table class="recap" id="recapTable">
+        <thead>
+          <tr>
+            <th>Lorong</th>
+            <th>Total</th>
+            <th>Hitung</th>
+            <th>%</th>
+          </tr>
+        </thead>
+        <tbody id="recapBody"></tbody>
+        <tfoot id="recapFoot"></tfoot>
+      </table>
+    </div>
+  </div>
+</main>
+
+<footer>Progress tersimpan otomatis di perangkat ini (offline)</footer>
+<div id="toast"></div>
+
+<script>
+const LOKASI_DATA = [{"lorong":"W01","lokasi":"W010010101"},{"lorong":"W01","lokasi":"W010020101"},{"lorong":"W01","lokasi":"W010030101"},{"lorong":"W01","lokasi":"W010040101"},{"lorong":"W01","lokasi":"W010050101"},{"lorong":"W01","lokasi":"W010070101"},{"lorong":"W01","lokasi":"W010080101"},{"lorong":"W01","lokasi":"W010090101"},{"lorong":"W01","lokasi":"W010100101"},{"lorong":"W01","lokasi":"W010110101"},{"lorong":"W01","lokasi":"W010120101"},{"lorong":"W01","lokasi":"W010130101"},{"lorong":"W01","lokasi":"W010140101"},{"lorong":"W01","lokasi":"W010150101"},{"lorong":"W01","lokasi":"W010160101"},{"lorong":"W01","lokasi":"W010170101"},{"lorong":"W01","lokasi":"W010180101"},{"lorong":"W01","lokasi":"W010200101"},{"lorong":"W01","lokasi":"W010210101"},{"lorong":"W01","lokasi":"W010220101"},{"lorong":"W01","lokasi":"W010230101"},{"lorong":"W01","lokasi":"W010240101"},{"lorong":"W01","lokasi":"W010250101"},{"lorong":"W01","lokasi":"W010260101"},{"lorong":"W01","lokasi":"W010270101"},{"lorong":"W01","lokasi":"W010280101"},{"lorong":"W01","lokasi":"W010290101"},{"lorong":"W01","lokasi":"W010320101"},{"lorong":"W01","lokasi":"W010330101"},{"lorong":"W01","lokasi":"W010340101"},{"lorong":"W01","lokasi":"W010350101"},{"lorong":"W01","lokasi":"W010360101"},{"lorong":"W01","lokasi":"W010370101"},{"lorong":"W01","lokasi":"W010380101"},{"lorong":"W01","lokasi":"W010390101"},{"lorong":"W01","lokasi":"W010400101"},{"lorong":"W01","lokasi":"W010410101"},{"lorong":"W01","lokasi":"W010420101"},{"lorong":"W02","lokasi":"W020010101"},{"lorong":"W02","lokasi":"W020020101"},{"lorong":"W02","lokasi":"W020030101"},{"lorong":"W02","lokasi":"W020040101"},{"lorong":"W02","lokasi":"W020050101"},{"lorong":"W02","lokasi":"W020060101"},{"lorong":"W02","lokasi":"W020070101"},{"lorong":"W02","lokasi":"W020080101"},{"lorong":"W02","lokasi":"W020090101"},{"lorong":"W02","lokasi":"W020100101"},{"lorong":"W02","lokasi":"W020110101"},{"lorong":"W02","lokasi":"W020120101"},{"lorong":"W02","lokasi":"W020130101"},{"lorong":"W02","lokasi":"W020140101"},{"lorong":"W02","lokasi":"W020150101"},{"lorong":"W02","lokasi":"W020160101"},{"lorong":"W02","lokasi":"W020170101"},{"lorong":"W02","lokasi":"W020180101"},{"lorong":"W02","lokasi":"W020190101"},{"lorong":"W02","lokasi":"W020200101"},{"lorong":"W02","lokasi":"W020210101"},{"lorong":"W02","lokasi":"W020220101"},{"lorong":"W02","lokasi":"W020230101"},{"lorong":"W02","lokasi":"W020240101"},{"lorong":"W02","lokasi":"W020250101"},{"lorong":"W03","lokasi":"W030010101"},{"lorong":"W03","lokasi":"W030020101"},{"lorong":"W03","lokasi":"W030030101"},{"lorong":"W03","lokasi":"W030040101"},{"lorong":"W03","lokasi":"W030050101"},{"lorong":"W03","lokasi":"W030060101"},{"lorong":"W03","lokasi":"W030070101"},{"lorong":"W03","lokasi":"W030080101"},{"lorong":"W03","lokasi":"W030090101"},{"lorong":"W03","lokasi":"W030100101"},{"lorong":"W03","lokasi":"W030110101"},{"lorong":"W03","lokasi":"W030120101"},{"lorong":"W03","lokasi":"W030130101"},{"lorong":"W03","lokasi":"W030140101"},{"lorong":"W03","lokasi":"W030150101"},{"lorong":"W03","lokasi":"W030160101"},{"lorong":"W03","lokasi":"W030170101"},{"lorong":"W03","lokasi":"W030180101"},{"lorong":"W03","lokasi":"W030190101"},{"lorong":"W03","lokasi":"W030200101"},{"lorong":"W03","lokasi":"W030210101"},{"lorong":"W03","lokasi":"W030220101"},{"lorong":"W03","lokasi":"W030230101"},{"lorong":"W03","lokasi":"W030240101"},{"lorong":"W03","lokasi":"W030250101"},{"lorong":"W03","lokasi":"W030260101"},{"lorong":"W03","lokasi":"W030270101"},{"lorong":"W03","lokasi":"W030280101"},{"lorong":"W03","lokasi":"W030290101"},{"lorong":"W03","lokasi":"W030300101"},{"lorong":"W03","lokasi":"W030310101"},{"lorong":"W03","lokasi":"W030320101"},{"lorong":"W03","lokasi":"W030330101"},{"lorong":"W04","lokasi":"W040010101"},{"lorong":"W04","lokasi":"W040020101"},{"lorong":"W04","lokasi":"W040030101"},{"lorong":"W04","lokasi":"W040040101"},{"lorong":"W04","lokasi":"W040050101"},{"lorong":"W04","lokasi":"W040060101"},{"lorong":"W04","lokasi":"W040070101"},{"lorong":"W04","lokasi":"W040080101"},{"lorong":"W04","lokasi":"W040090101"},{"lorong":"W04","lokasi":"W040100101"},{"lorong":"W04","lokasi":"W040110101"},{"lorong":"W04","lokasi":"W040120101"},{"lorong":"W04","lokasi":"W040130101"},{"lorong":"W04","lokasi":"W040140101"},{"lorong":"W04","lokasi":"W040150101"},{"lorong":"W04","lokasi":"W040160101"},{"lorong":"W04","lokasi":"W040170101"},{"lorong":"W04","lokasi":"W040180101"},{"lorong":"W04","lokasi":"W040190101"},{"lorong":"W04","lokasi":"W040200101"},{"lorong":"W04","lokasi":"W040210101"},{"lorong":"W04","lokasi":"W040220101"},{"lorong":"W04","lokasi":"W040230101"},{"lorong":"W04","lokasi":"W040240101"},{"lorong":"W04","lokasi":"W040250101"},{"lorong":"W04","lokasi":"W040260101"},{"lorong":"W04","lokasi":"W040270101"},{"lorong":"W04","lokasi":"W040280101"},{"lorong":"W04","lokasi":"W040290101"},{"lorong":"W04","lokasi":"W040300101"},{"lorong":"W04","lokasi":"W040310101"},{"lorong":"W04","lokasi":"W040320101"},{"lorong":"W04","lokasi":"W040330101"},{"lorong":"W04","lokasi":"W040340101"},{"lorong":"W04","lokasi":"W040350101"},{"lorong":"W04","lokasi":"W040360101"},{"lorong":"W04","lokasi":"W040370101"},{"lorong":"W04","lokasi":"W040380101"},{"lorong":"W04","lokasi":"W040390101"},{"lorong":"W04","lokasi":"W040400101"},{"lorong":"W04","lokasi":"W040410101"},{"lorong":"W04","lokasi":"W040420101"},{"lorong":"W04","lokasi":"W040430101"},{"lorong":"W04","lokasi":"W040440101"},{"lorong":"W04","lokasi":"W040450101"},{"lorong":"W04","lokasi":"W040460101"},{"lorong":"W04","lokasi":"W040470101"},{"lorong":"W04","lokasi":"W040480101"},{"lorong":"W05","lokasi":"W050010101"},{"lorong":"W05","lokasi":"W050020101"},{"lorong":"W05","lokasi":"W050030101"},{"lorong":"W05","lokasi":"W050040101"},{"lorong":"W05","lokasi":"W050050101"},{"lorong":"W05","lokasi":"W050060101"},{"lorong":"W05","lokasi":"W050070101"},{"lorong":"W05","lokasi":"W050080101"},{"lorong":"W05","lokasi":"W050090101"},{"lorong":"W05","lokasi":"W050100101"},{"lorong":"W05","lokasi":"W050110101"},{"lorong":"W05","lokasi":"W050120101"},{"lorong":"W05","lokasi":"W050130101"},{"lorong":"W05","lokasi":"W050140101"},{"lorong":"W05","lokasi":"W050150101"},{"lorong":"W05","lokasi":"W050160101"},{"lorong":"W05","lokasi":"W050170101"},{"lorong":"W05","lokasi":"W050180101"},{"lorong":"W05","lokasi":"W050190101"},{"lorong":"W05","lokasi":"W050200101"},{"lorong":"W05","lokasi":"W050210101"},{"lorong":"W05","lokasi":"W050220101"},{"lorong":"W05","lokasi":"W050230101"},{"lorong":"W05","lokasi":"W050240101"},{"lorong":"W05","lokasi":"W050250101"},{"lorong":"W05","lokasi":"W050260101"},{"lorong":"W05","lokasi":"W050270101"},{"lorong":"W05","lokasi":"W050280101"},{"lorong":"W05","lokasi":"W050290101"},{"lorong":"W05","lokasi":"W050300101"},{"lorong":"W05","lokasi":"W050310101"},{"lorong":"W05","lokasi":"W050320101"},{"lorong":"W05","lokasi":"W050330101"},{"lorong":"W05","lokasi":"W050340101"},{"lorong":"W05","lokasi":"W050350101"},{"lorong":"W05","lokasi":"W050360101"},{"lorong":"W05","lokasi":"W050370101"},{"lorong":"W05","lokasi":"W050380101"},{"lorong":"W05","lokasi":"W050390101"},{"lorong":"W05","lokasi":"W050400101"},{"lorong":"W05","lokasi":"W050410101"},{"lorong":"W05","lokasi":"W050420101"},{"lorong":"W05","lokasi":"W050430101"},{"lorong":"W05","lokasi":"W050440101"},{"lorong":"W05","lokasi":"W050450101"},{"lorong":"W05","lokasi":"W050460101"},{"lorong":"W05","lokasi":"W050470101"},{"lorong":"W05","lokasi":"W050480101"},{"lorong":"W05","lokasi":"W050490101"},{"lorong":"W06","lokasi":"W060010101"},{"lorong":"W06","lokasi":"W060020101"},{"lorong":"W06","lokasi":"W060030101"},{"lorong":"W06","lokasi":"W060040101"},{"lorong":"W06","lokasi":"W060050101"},{"lorong":"W06","lokasi":"W060060101"},{"lorong":"W06","lokasi":"W060070101"},{"lorong":"W06","lokasi":"W060080101"},{"lorong":"W06","lokasi":"W060090101"},{"lorong":"W06","lokasi":"W060100101"},{"lorong":"W06","lokasi":"W060110101"},{"lorong":"W06","lokasi":"W060120101"},{"lorong":"W06","lokasi":"W060130101"},{"lorong":"W06","lokasi":"W060140101"},{"lorong":"W06","lokasi":"W060150101"},{"lorong":"W06","lokasi":"W060160101"},{"lorong":"W06","lokasi":"W060170101"},{"lorong":"W06","lokasi":"W060180101"},{"lorong":"W06","lokasi":"W060190101"},{"lorong":"W06","lokasi":"W060200101"},{"lorong":"W06","lokasi":"W060210101"},{"lorong":"W06","lokasi":"W060220101"},{"lorong":"W06","lokasi":"W060230101"},{"lorong":"W06","lokasi":"W060240101"},{"lorong":"W06","lokasi":"W060250101"},{"lorong":"W06","lokasi":"W060260101"},{"lorong":"W06","lokasi":"W060280101"},{"lorong":"W06","lokasi":"W060290101"},{"lorong":"W06","lokasi":"W060300101"},{"lorong":"W06","lokasi":"W060310101"},{"lorong":"W06","lokasi":"W060320101"},{"lorong":"W06","lokasi":"W060330101"},{"lorong":"W06","lokasi":"W060340101"},{"lorong":"W06","lokasi":"W060350101"},{"lorong":"W06","lokasi":"W060360101"},{"lorong":"W06","lokasi":"W060370101"},{"lorong":"W06","lokasi":"W060380101"},{"lorong":"W06","lokasi":"W060390101"},{"lorong":"W06","lokasi":"W060400101"},{"lorong":"W06","lokasi":"W060410101"},{"lorong":"W06","lokasi":"W060420101"},{"lorong":"W06","lokasi":"W060430101"},{"lorong":"W06","lokasi":"W060440101"},{"lorong":"W06","lokasi":"W060450101"},{"lorong":"W06","lokasi":"W060460101"},{"lorong":"W06","lokasi":"W060470101"},{"lorong":"W06","lokasi":"W060480101"},{"lorong":"W06","lokasi":"W060490101"},{"lorong":"W06","lokasi":"W060500101"},{"lorong":"W06","lokasi":"W060510101"},{"lorong":"W06","lokasi":"W060520101"},{"lorong":"W06","lokasi":"W060530101"},{"lorong":"W07","lokasi":"W070010101"},{"lorong":"W07","lokasi":"W070020101"},{"lorong":"W07","lokasi":"W070030101"},{"lorong":"W07","lokasi":"W070040101"},{"lorong":"W07","lokasi":"W070050101"},{"lorong":"W07","lokasi":"W070060101"},{"lorong":"W07","lokasi":"W070070101"},{"lorong":"W07","lokasi":"W070080101"},{"lorong":"W07","lokasi":"W070090101"},{"lorong":"W07","lokasi":"W070100101"},{"lorong":"W07","lokasi":"W070110101"},{"lorong":"W07","lokasi":"W070120101"},{"lorong":"W07","lokasi":"W070130101"},{"lorong":"W07","lokasi":"W070140101"},{"lorong":"W07","lokasi":"W070150101"},{"lorong":"W07","lokasi":"W070160101"},{"lorong":"W07","lokasi":"W070170101"},{"lorong":"W07","lokasi":"W070180101"},{"lorong":"W07","lokasi":"W070190101"},{"lorong":"W07","lokasi":"W070200101"},{"lorong":"W07","lokasi":"W070210101"},{"lorong":"W07","lokasi":"W070220101"},{"lorong":"W07","lokasi":"W070230101"},{"lorong":"W07","lokasi":"W070240101"},{"lorong":"W07","lokasi":"W070250101"},{"lorong":"W07","lokasi":"W070260101"},{"lorong":"W08","lokasi":"W080010101"},{"lorong":"W08","lokasi":"W080020101"},{"lorong":"W08","lokasi":"W080030101"},{"lorong":"W08","lokasi":"W080040101"},{"lorong":"W08","lokasi":"W080050101"},{"lorong":"W08","lokasi":"W080060101"},{"lorong":"W08","lokasi":"W080070101"},{"lorong":"W08","lokasi":"W080080101"},{"lorong":"W08","lokasi":"W080090101"},{"lorong":"W08","lokasi":"W080100101"},{"lorong":"W08","lokasi":"W080110101"},{"lorong":"W08","lokasi":"W080120101"},{"lorong":"W08","lokasi":"W080130101"},{"lorong":"W08","lokasi":"W080140101"},{"lorong":"W08","lokasi":"W080150101"},{"lorong":"W08","lokasi":"W080160101"},{"lorong":"W08","lokasi":"W080170101"},{"lorong":"W08","lokasi":"W080180101"},{"lorong":"W08","lokasi":"W080190101"},{"lorong":"W08","lokasi":"W080200101"},{"lorong":"W08","lokasi":"W080210101"},{"lorong":"W08","lokasi":"W080220101"},{"lorong":"W08","lokasi":"W080230101"},{"lorong":"W08","lokasi":"W080240101"},{"lorong":"W08","lokasi":"W080250101"},{"lorong":"W08","lokasi":"W080260101"},{"lorong":"W08","lokasi":"W080270101"},{"lorong":"W09","lokasi":"W090010101"},{"lorong":"W09","lokasi":"W090020101"},{"lorong":"W09","lokasi":"W090030101"},{"lorong":"W09","lokasi":"W090040101"},{"lorong":"W09","lokasi":"W090050101"},{"lorong":"W09","lokasi":"W090060101"},{"lorong":"W09","lokasi":"W090070101"},{"lorong":"W09","lokasi":"W090080101"},{"lorong":"W09","lokasi":"W090090101"},{"lorong":"W09","lokasi":"W090100101"},{"lorong":"W09","lokasi":"W090110101"},{"lorong":"W09","lokasi":"W090120101"},{"lorong":"W09","lokasi":"W090130101"},{"lorong":"W09","lokasi":"W090140101"},{"lorong":"W09","lokasi":"W090150101"},{"lorong":"W09","lokasi":"W090160101"},{"lorong":"W09","lokasi":"W090170101"},{"lorong":"W09","lokasi":"W090180101"},{"lorong":"W09","lokasi":"W090190101"},{"lorong":"W09","lokasi":"W090200101"},{"lorong":"W09","lokasi":"W090210101"},{"lorong":"W09","lokasi":"W090220101"},{"lorong":"W09","lokasi":"W090230101"},{"lorong":"W09","lokasi":"W090240101"},{"lorong":"W09","lokasi":"W090250101"},{"lorong":"W10","lokasi":"W100010101"},{"lorong":"W10","lokasi":"W100020101"},{"lorong":"W10","lokasi":"W100030101"},{"lorong":"W10","lokasi":"W100040101"},{"lorong":"W10","lokasi":"W100050101"},{"lorong":"W10","lokasi":"W100060101"},{"lorong":"W10","lokasi":"W100070101"},{"lorong":"W10","lokasi":"W100080101"},{"lorong":"W10","lokasi":"W100090101"},{"lorong":"W10","lokasi":"W100100101"},{"lorong":"W10","lokasi":"W100110101"},{"lorong":"W10","lokasi":"W100120101"},{"lorong":"W10","lokasi":"W100130101"},{"lorong":"W10","lokasi":"W100140101"},{"lorong":"W10","lokasi":"W100150101"},{"lorong":"W11","lokasi":"W110010101"},{"lorong":"W11","lokasi":"W110020101"},{"lorong":"W11","lokasi":"W110030101"},{"lorong":"W11","lokasi":"W110040101"},{"lorong":"W11","lokasi":"W110050101"},{"lorong":"W13","lokasi":"W130010101"},{"lorong":"W13","lokasi":"W130010201"},{"lorong":"W13","lokasi":"W130030101"},{"lorong":"W13","lokasi":"W130030201"},{"lorong":"W13","lokasi":"W130030301"},{"lorong":"W13","lokasi":"W130050101"},{"lorong":"W13","lokasi":"W130070101"},{"lorong":"W13","lokasi":"W130070201"},{"lorong":"W13","lokasi":"W130070301"},{"lorong":"W13","lokasi":"W130090101"},{"lorong":"W13","lokasi":"W130090201"},{"lorong":"W13","lokasi":"W130090301"},{"lorong":"W13","lokasi":"W130110101"},{"lorong":"W13","lokasi":"W130110201"},{"lorong":"W13","lokasi":"W130120101"},{"lorong":"W13","lokasi":"W130130101"},{"lorong":"W13","lokasi":"W130150101"},{"lorong":"W13","lokasi":"W130150201"},{"lorong":"W13","lokasi":"W130170101"},{"lorong":"W13","lokasi":"W130170201"},{"lorong":"W13","lokasi":"W130180301"},{"lorong":"W13","lokasi":"W130190101"},{"lorong":"W13","lokasi":"W130200101"},{"lorong":"W13","lokasi":"W130210101"},{"lorong":"W13","lokasi":"W130220101"},{"lorong":"W13","lokasi":"W130230101"},{"lorong":"W13","lokasi":"W130240101"},{"lorong":"W13","lokasi":"W130250101"},{"lorong":"W13","lokasi":"W130260101"},{"lorong":"W13","lokasi":"W130270101"},{"lorong":"W13","lokasi":"W130280101"},{"lorong":"W13","lokasi":"W130290101"},{"lorong":"W13","lokasi":"W130300101"},{"lorong":"W13","lokasi":"W130300201"},{"lorong":"W13","lokasi":"W130300301"},{"lorong":"W13","lokasi":"W130320101"},{"lorong":"W13","lokasi":"W130320201"},{"lorong":"W13","lokasi":"W130320301"},{"lorong":"W13","lokasi":"W130340101"},{"lorong":"W13","lokasi":"W130340201"},{"lorong":"W13","lokasi":"W130340301"},{"lorong":"W13","lokasi":"W130360101"},{"lorong":"W13","lokasi":"W130360201"},{"lorong":"W13","lokasi":"W130360301"},{"lorong":"W13","lokasi":"W130370301"},{"lorong":"W13","lokasi":"W130380101"},{"lorong":"W13","lokasi":"W130380201"},{"lorong":"W13","lokasi":"W130380301"},{"lorong":"W13","lokasi":"W130380401"},{"lorong":"W14","lokasi":"W140010101"},{"lorong":"W14","lokasi":"W140010201"},{"lorong":"W14","lokasi":"W140010301"},{"lorong":"W14","lokasi":"W140010401"},{"lorong":"W14","lokasi":"W140020101"},{"lorong":"W14","lokasi":"W140020201"},{"lorong":"W14","lokasi":"W140020301"},{"lorong":"W14","lokasi":"W140020401"},{"lorong":"W14","lokasi":"W140030101"},{"lorong":"W14","lokasi":"W140030201"},{"lorong":"W14","lokasi":"W140030301"},{"lorong":"W14","lokasi":"W140030401"},{"lorong":"W14","lokasi":"W140040101"},{"lorong":"W14","lokasi":"W140040201"},{"lorong":"W14","lokasi":"W140040301"},{"lorong":"W14","lokasi":"W140040401"},{"lorong":"W14","lokasi":"W140050101"},{"lorong":"W14","lokasi":"W140050201"},{"lorong":"W14","lokasi":"W140050301"},{"lorong":"W14","lokasi":"W140050401"},{"lorong":"W14","lokasi":"W140060101"},{"lorong":"W14","lokasi":"W140060201"},{"lorong":"W14","lokasi":"W140060301"},{"lorong":"W14","lokasi":"W140060401"},{"lorong":"W14","lokasi":"W140070101"},{"lorong":"W14","lokasi":"W140070201"},{"lorong":"W14","lokasi":"W140070301"},{"lorong":"W14","lokasi":"W140070401"},{"lorong":"W14","lokasi":"W140080101"},{"lorong":"W14","lokasi":"W140080201"},{"lorong":"W14","lokasi":"W140080301"},{"lorong":"W14","lokasi":"W140080401"},{"lorong":"W14","lokasi":"W140090101"},{"lorong":"W14","lokasi":"W140090201"},{"lorong":"W14","lokasi":"W140090401"},{"lorong":"W14","lokasi":"W140100101"},{"lorong":"W14","lokasi":"W140100201"},{"lorong":"W14","lokasi":"W140100301"},{"lorong":"W14","lokasi":"W140100401"},{"lorong":"W14","lokasi":"W140110101"},{"lorong":"W14","lokasi":"W140120101"},{"lorong":"W14","lokasi":"W140130101"},{"lorong":"W14","lokasi":"W140140101"},{"lorong":"W14","lokasi":"W140150101"},{"lorong":"W14","lokasi":"W140160101"},{"lorong":"W14","lokasi":"W140170101"},{"lorong":"W14","lokasi":"W140180101"},{"lorong":"W14","lokasi":"W140190101"},{"lorong":"W14","lokasi":"W140200101"},{"lorong":"W14","lokasi":"W140210101"},{"lorong":"W14","lokasi":"W140220101"},{"lorong":"W14","lokasi":"W140220301"},{"lorong":"W14","lokasi":"W140220401"},{"lorong":"W14","lokasi":"W140240101"},{"lorong":"W14","lokasi":"W140240301"},{"lorong":"W14","lokasi":"W140240401"},{"lorong":"W14","lokasi":"W140250301"},{"lorong":"W14","lokasi":"W140250401"},{"lorong":"W14","lokasi":"W140260101"},{"lorong":"W14","lokasi":"W140260301"},{"lorong":"W14","lokasi":"W140260401"},{"lorong":"W14","lokasi":"W140270201"},{"lorong":"W14","lokasi":"W140280101"},{"lorong":"W14","lokasi":"W140280301"},{"lorong":"W14","lokasi":"W140280401"},{"lorong":"W14","lokasi":"W140290101"},{"lorong":"W14","lokasi":"W140300101"},{"lorong":"W14","lokasi":"W140300201"},{"lorong":"W14","lokasi":"W140300301"},{"lorong":"W14","lokasi":"W140300401"},{"lorong":"W14","lokasi":"W140320101"},{"lorong":"W14","lokasi":"W140320201"},{"lorong":"W14","lokasi":"W140320301"},{"lorong":"W14","lokasi":"W140320401"},{"lorong":"W14","lokasi":"W140330201"},{"lorong":"W14","lokasi":"W140330301"},{"lorong":"W14","lokasi":"W140330401"},{"lorong":"W14","lokasi":"W140340101"},{"lorong":"W14","lokasi":"W140340201"},{"lorong":"W14","lokasi":"W140340301"},{"lorong":"W14","lokasi":"W140340401"},{"lorong":"W14","lokasi":"W140350101"},{"lorong":"W14","lokasi":"W140350201"},{"lorong":"W14","lokasi":"W140350401"},{"lorong":"W14","lokasi":"W140360101"},{"lorong":"W14","lokasi":"W140360201"},{"lorong":"W14","lokasi":"W140360301"},{"lorong":"W14","lokasi":"W140360401"},{"lorong":"W14","lokasi":"W140370101"},{"lorong":"W14","lokasi":"W140370401"},{"lorong":"W14","lokasi":"W140380101"},{"lorong":"W14","lokasi":"W140380201"},{"lorong":"W14","lokasi":"W140380301"},{"lorong":"W14","lokasi":"W140380401"},{"lorong":"W14","lokasi":"W140390101"},{"lorong":"W14","lokasi":"W140390201"},{"lorong":"W14","lokasi":"W140390301"},{"lorong":"W14","lokasi":"W140390401"},{"lorong":"W15","lokasi":"W150010101"},{"lorong":"W15","lokasi":"W150020201"},{"lorong":"W15","lokasi":"W150020301"},{"lorong":"W15","lokasi":"W150030101"},{"lorong":"W15","lokasi":"W150030301"},{"lorong":"W15","lokasi":"W150030401"},{"lorong":"W15","lokasi":"W150040301"},{"lorong":"W15","lokasi":"W150050101"},{"lorong":"W15","lokasi":"W150050301"},{"lorong":"W15","lokasi":"W150050401"},{"lorong":"W15","lokasi":"W150070101"},{"lorong":"W15","lokasi":"W150070201"},{"lorong":"W15","lokasi":"W150070301"},{"lorong":"W15","lokasi":"W150080301"},{"lorong":"W15","lokasi":"W150080401"},{"lorong":"W15","lokasi":"W150090101"},{"lorong":"W15","lokasi":"W150090301"},{"lorong":"W15","lokasi":"W150100201"},{"lorong":"W15","lokasi":"W150100301"},{"lorong":"W15","lokasi":"W150100401"},{"lorong":"W15","lokasi":"W150110101"},{"lorong":"W15","lokasi":"W150130101"},{"lorong":"W15","lokasi":"W150130501"},{"lorong":"W15","lokasi":"W150150101"},{"lorong":"W15","lokasi":"W150170101"},{"lorong":"W15","lokasi":"W150190101"},{"lorong":"W15","lokasi":"W150210101"},{"lorong":"W15","lokasi":"W150210201"},{"lorong":"W15","lokasi":"W150210301"},{"lorong":"W15","lokasi":"W150220301"},{"lorong":"W15","lokasi":"W150230101"},{"lorong":"W15","lokasi":"W150230201"},{"lorong":"W15","lokasi":"W150230301"},{"lorong":"W15","lokasi":"W150250101"},{"lorong":"W15","lokasi":"W150250201"},{"lorong":"W15","lokasi":"W150260301"},{"lorong":"W15","lokasi":"W150270101"},{"lorong":"W15","lokasi":"W150270201"},{"lorong":"W15","lokasi":"W150280301"},{"lorong":"W15","lokasi":"W150290101"},{"lorong":"W15","lokasi":"W150310101"},{"lorong":"W15","lokasi":"W150310201"},{"lorong":"W15","lokasi":"W150320301"},{"lorong":"W15","lokasi":"W150330101"},{"lorong":"W15","lokasi":"W150330201"},{"lorong":"W15","lokasi":"W150330301"},{"lorong":"W15","lokasi":"W150340301"},{"lorong":"W15","lokasi":"W150350101"},{"lorong":"W15","lokasi":"W150350201"},{"lorong":"W15","lokasi":"W150350301"},{"lorong":"W15","lokasi":"W150360301"},{"lorong":"W15","lokasi":"W150370101"},{"lorong":"W15","lokasi":"W150370201"},{"lorong":"W15","lokasi":"W150370301"},{"lorong":"W15","lokasi":"W150380301"},{"lorong":"W15","lokasi":"W150390101"},{"lorong":"W15","lokasi":"W150390201"},{"lorong":"W15","lokasi":"W150390301"},{"lorong":"W15","lokasi":"W150400301"},{"lorong":"W16","lokasi":"W160010101"},{"lorong":"W16","lokasi":"W160010201"},{"lorong":"W16","lokasi":"W160010301"},{"lorong":"W16","lokasi":"W160010401"},{"lorong":"W16","lokasi":"W160010501"},{"lorong":"W16","lokasi":"W160020101"},{"lorong":"W16","lokasi":"W160020301"},{"lorong":"W16","lokasi":"W160020401"},{"lorong":"W16","lokasi":"W160020501"},{"lorong":"W16","lokasi":"W160030101"},{"lorong":"W16","lokasi":"W160030201"},{"lorong":"W16","lokasi":"W160030301"},{"lorong":"W16","lokasi":"W160030401"},{"lorong":"W16","lokasi":"W160040101"},{"lorong":"W16","lokasi":"W160040201"},{"lorong":"W16","lokasi":"W160040301"},{"lorong":"W16","lokasi":"W160040401"},{"lorong":"W16","lokasi":"W160050101"},{"lorong":"W16","lokasi":"W160050201"},{"lorong":"W16","lokasi":"W160050301"},{"lorong":"W16","lokasi":"W160050401"},{"lorong":"W16","lokasi":"W160060201"},{"lorong":"W16","lokasi":"W160060401"},{"lorong":"W16","lokasi":"W160070101"},{"lorong":"W16","lokasi":"W160070201"},{"lorong":"W16","lokasi":"W160070301"},{"lorong":"W16","lokasi":"W160070401"},{"lorong":"W16","lokasi":"W160080101"},{"lorong":"W16","lokasi":"W160080201"},{"lorong":"W16","lokasi":"W160080301"},{"lorong":"W16","lokasi":"W160080401"},{"lorong":"W16","lokasi":"W160090101"},{"lorong":"W16","lokasi":"W160090201"},{"lorong":"W16","lokasi":"W160090301"},{"lorong":"W16","lokasi":"W160090401"},{"lorong":"W16","lokasi":"W160100101"},{"lorong":"W16","lokasi":"W160100401"},{"lorong":"W16","lokasi":"W160110101"},{"lorong":"W16","lokasi":"W160110201"},{"lorong":"W16","lokasi":"W160110301"},{"lorong":"W16","lokasi":"W160110401"},{"lorong":"W16","lokasi":"W160120101"},{"lorong":"W16","lokasi":"W160130101"},{"lorong":"W16","lokasi":"W160130201"},{"lorong":"W16","lokasi":"W160130301"},{"lorong":"W16","lokasi":"W160130401"},{"lorong":"W16","lokasi":"W160140101"},{"lorong":"W16","lokasi":"W160150101"},{"lorong":"W16","lokasi":"W160150201"},{"lorong":"W16","lokasi":"W160150301"},{"lorong":"W16","lokasi":"W160150401"},{"lorong":"W16","lokasi":"W160160101"},{"lorong":"W16","lokasi":"W160160201"},{"lorong":"W16","lokasi":"W160160301"},{"lorong":"W16","lokasi":"W160170101"},{"lorong":"W16","lokasi":"W160170201"},{"lorong":"W16","lokasi":"W160170301"},{"lorong":"W16","lokasi":"W160170401"},{"lorong":"W16","lokasi":"W160180101"},{"lorong":"W16","lokasi":"W160180201"},{"lorong":"W16","lokasi":"W160180301"},{"lorong":"W16","lokasi":"W160180401"},{"lorong":"W16","lokasi":"W160190101"},{"lorong":"W16","lokasi":"W160190201"},{"lorong":"W16","lokasi":"W160190301"},{"lorong":"W16","lokasi":"W160190401"},{"lorong":"W16","lokasi":"W160200201"},{"lorong":"W16","lokasi":"W160200301"},{"lorong":"W16","lokasi":"W160200401"},{"lorong":"W16","lokasi":"W160210101"},{"lorong":"W16","lokasi":"W160210201"},{"lorong":"W16","lokasi":"W160210301"},{"lorong":"W16","lokasi":"W160210401"},{"lorong":"W16","lokasi":"W160220101"},{"lorong":"W16","lokasi":"W160220201"},{"lorong":"W16","lokasi":"W160220301"},{"lorong":"W16","lokasi":"W160220401"},{"lorong":"W16","lokasi":"W160230101"},{"lorong":"W16","lokasi":"W160230201"},{"lorong":"W16","lokasi":"W160230301"},{"lorong":"W16","lokasi":"W160230401"},{"lorong":"W16","lokasi":"W160240101"},{"lorong":"W16","lokasi":"W160240201"},{"lorong":"W16","lokasi":"W160240301"},{"lorong":"W16","lokasi":"W160240401"},{"lorong":"W16","lokasi":"W160250101"},{"lorong":"W16","lokasi":"W160250201"},{"lorong":"W16","lokasi":"W160250301"},{"lorong":"W16","lokasi":"W160250401"},{"lorong":"W16","lokasi":"W160260101"},{"lorong":"W16","lokasi":"W160260201"},{"lorong":"W16","lokasi":"W160260301"},{"lorong":"W16","lokasi":"W160260401"},{"lorong":"W16","lokasi":"W160270101"},{"lorong":"W16","lokasi":"W160290101"},{"lorong":"W16","lokasi":"W160290201"},{"lorong":"W16","lokasi":"W160290301"},{"lorong":"W16","lokasi":"W160290401"},{"lorong":"W16","lokasi":"W160300101"},{"lorong":"W16","lokasi":"W160300201"},{"lorong":"W16","lokasi":"W160300301"},{"lorong":"W16","lokasi":"W160300401"},{"lorong":"W16","lokasi":"W160310101"},{"lorong":"W16","lokasi":"W160310201"},{"lorong":"W16","lokasi":"W160310301"},{"lorong":"W16","lokasi":"W160310401"},{"lorong":"W16","lokasi":"W160320101"},{"lorong":"W16","lokasi":"W160320201"},{"lorong":"W16","lokasi":"W160320301"},{"lorong":"W16","lokasi":"W160330101"},{"lorong":"W16","lokasi":"W160330201"},{"lorong":"W16","lokasi":"W160330301"},{"lorong":"W16","lokasi":"W160330401"},{"lorong":"W16","lokasi":"W160340101"},{"lorong":"W16","lokasi":"W160340201"},{"lorong":"W16","lokasi":"W160340301"},{"lorong":"W16","lokasi":"W160350101"},{"lorong":"W16","lokasi":"W160350201"},{"lorong":"W16","lokasi":"W160350301"},{"lorong":"W16","lokasi":"W160350401"},{"lorong":"W16","lokasi":"W160360201"},{"lorong":"W16","lokasi":"W160360301"},{"lorong":"W16","lokasi":"W160370101"},{"lorong":"W16","lokasi":"W160370201"},{"lorong":"W16","lokasi":"W160370301"},{"lorong":"W16","lokasi":"W160370401"},{"lorong":"W16","lokasi":"W160380101"},{"lorong":"W16","lokasi":"W160380201"},{"lorong":"W16","lokasi":"W160380301"},{"lorong":"W16","lokasi":"W160380401"},{"lorong":"W17","lokasi":"W170010101"},{"lorong":"W17","lokasi":"W170010201"},{"lorong":"W17","lokasi":"W170010301"},{"lorong":"W17","lokasi":"W170010401"},{"lorong":"W17","lokasi":"W170020101"},{"lorong":"W17","lokasi":"W170020201"},{"lorong":"W17","lokasi":"W170020301"},{"lorong":"W17","lokasi":"W170020401"},{"lorong":"W17","lokasi":"W170030101"},{"lorong":"W17","lokasi":"W170030201"},{"lorong":"W17","lokasi":"W170030301"},{"lorong":"W17","lokasi":"W170030401"},{"lorong":"W17","lokasi":"W170040101"},{"lorong":"W17","lokasi":"W170040201"},{"lorong":"W17","lokasi":"W170040301"},{"lorong":"W17","lokasi":"W170050101"},{"lorong":"W17","lokasi":"W170050201"},{"lorong":"W17","lokasi":"W170050301"},{"lorong":"W17","lokasi":"W170060101"},{"lorong":"W17","lokasi":"W170060301"},{"lorong":"W17","lokasi":"W170070101"},{"lorong":"W17","lokasi":"W170070201"},{"lorong":"W17","lokasi":"W170070301"},{"lorong":"W17","lokasi":"W170080101"},{"lorong":"W17","lokasi":"W170080201"},{"lorong":"W17","lokasi":"W170080301"},{"lorong":"W17","lokasi":"W170080401"},{"lorong":"W17","lokasi":"W170090101"},{"lorong":"W17","lokasi":"W170090201"},{"lorong":"W17","lokasi":"W170090301"},{"lorong":"W17","lokasi":"W170090401"},{"lorong":"W17","lokasi":"W170100101"},{"lorong":"W17","lokasi":"W170110101"},{"lorong":"W17","lokasi":"W170110201"},{"lorong":"W17","lokasi":"W170110301"},{"lorong":"W17","lokasi":"W170110401"},{"lorong":"W17","lokasi":"W170120101"},{"lorong":"W17","lokasi":"W170120201"},{"lorong":"W17","lokasi":"W170130101"},{"lorong":"W17","lokasi":"W170130201"},{"lorong":"W17","lokasi":"W170130401"},{"lorong":"W17","lokasi":"W170140101"},{"lorong":"W17","lokasi":"W170140201"},{"lorong":"W17","lokasi":"W170150101"},{"lorong":"W17","lokasi":"W170150201"},{"lorong":"W17","lokasi":"W170150301"},{"lorong":"W17","lokasi":"W170150401"},{"lorong":"W17","lokasi":"W170160201"},{"lorong":"W17","lokasi":"W170160301"},{"lorong":"W17","lokasi":"W170170101"},{"lorong":"W17","lokasi":"W170170201"},{"lorong":"W17","lokasi":"W170170401"},{"lorong":"W17","lokasi":"W170180201"},{"lorong":"W17","lokasi":"W170190101"},{"lorong":"W17","lokasi":"W170190201"},{"lorong":"W17","lokasi":"W170190301"},{"lorong":"W17","lokasi":"W170190401"},{"lorong":"W17","lokasi":"W170200201"},{"lorong":"W17","lokasi":"W170200301"},{"lorong":"W17","lokasi":"W170200401"},{"lorong":"W17","lokasi":"W170210101"},{"lorong":"W17","lokasi":"W170210201"},{"lorong":"W17","lokasi":"W170210301"},{"lorong":"W17","lokasi":"W170210401"},{"lorong":"W17","lokasi":"W170220401"},{"lorong":"W17","lokasi":"W170230101"},{"lorong":"W17","lokasi":"W170230301"},{"lorong":"W17","lokasi":"W170230401"},{"lorong":"W17","lokasi":"W170240201"},{"lorong":"W17","lokasi":"W170240401"},{"lorong":"W17","lokasi":"W170250101"},{"lorong":"W17","lokasi":"W170250201"},{"lorong":"W17","lokasi":"W170250301"},{"lorong":"W17","lokasi":"W170250401"},{"lorong":"W17","lokasi":"W170260301"},{"lorong":"W17","lokasi":"W170260401"},{"lorong":"W17","lokasi":"W170270101"},{"lorong":"W17","lokasi":"W170290101"},{"lorong":"W17","lokasi":"W170290201"},{"lorong":"W17","lokasi":"W170290301"},{"lorong":"W17","lokasi":"W170290401"},{"lorong":"W17","lokasi":"W170300101"},{"lorong":"W17","lokasi":"W170310101"},{"lorong":"W17","lokasi":"W170310201"},{"lorong":"W17","lokasi":"W170310301"},{"lorong":"W17","lokasi":"W170310401"},{"lorong":"W17","lokasi":"W170320101"},{"lorong":"W17","lokasi":"W170320401"},{"lorong":"W17","lokasi":"W170330101"},{"lorong":"W17","lokasi":"W170330201"},{"lorong":"W17","lokasi":"W170330301"},{"lorong":"W17","lokasi":"W170330401"},{"lorong":"W17","lokasi":"W170340101"},{"lorong":"W17","lokasi":"W170340201"},{"lorong":"W17","lokasi":"W170340301"},{"lorong":"W17","lokasi":"W170340401"},{"lorong":"W17","lokasi":"W170350101"},{"lorong":"W17","lokasi":"W170350201"},{"lorong":"W17","lokasi":"W170350301"},{"lorong":"W17","lokasi":"W170350401"},{"lorong":"W17","lokasi":"W170360101"},{"lorong":"W17","lokasi":"W170360301"},{"lorong":"W17","lokasi":"W170370101"},{"lorong":"W17","lokasi":"W170370201"},{"lorong":"W17","lokasi":"W170370301"},{"lorong":"W17","lokasi":"W170370401"},{"lorong":"W17","lokasi":"W170380101"},{"lorong":"W18","lokasi":"W180010101"},{"lorong":"W18","lokasi":"W180010201"},{"lorong":"W18","lokasi":"W180010301"},{"lorong":"W18","lokasi":"W180010401"},{"lorong":"W18","lokasi":"W180020101"},{"lorong":"W18","lokasi":"W180020401"},{"lorong":"W18","lokasi":"W180030101"},{"lorong":"W18","lokasi":"W180030201"},{"lorong":"W18","lokasi":"W180030301"},{"lorong":"W18","lokasi":"W180030401"},{"lorong":"W18","lokasi":"W180040401"},{"lorong":"W18","lokasi":"W180050101"},{"lorong":"W18","lokasi":"W180050201"},{"lorong":"W18","lokasi":"W180050301"},{"lorong":"W18","lokasi":"W180050401"},{"lorong":"W18","lokasi":"W180060101"},{"lorong":"W18","lokasi":"W180070101"},{"lorong":"W18","lokasi":"W180070201"},{"lorong":"W18","lokasi":"W180070301"},{"lorong":"W18","lokasi":"W180070401"},{"lorong":"W18","lokasi":"W180090101"},{"lorong":"W18","lokasi":"W180090201"},{"lorong":"W18","lokasi":"W180090301"},{"lorong":"W18","lokasi":"W180090401"},{"lorong":"W18","lokasi":"W180110101"},{"lorong":"W18","lokasi":"W180130101"},{"lorong":"W18","lokasi":"W180130201"},{"lorong":"W18","lokasi":"W180130301"},{"lorong":"W18","lokasi":"W180130401"},{"lorong":"W18","lokasi":"W180150101"},{"lorong":"W18","lokasi":"W180150201"},{"lorong":"W18","lokasi":"W180150301"},{"lorong":"W18","lokasi":"W180150401"},{"lorong":"W18","lokasi":"W180170101"},{"lorong":"W18","lokasi":"W180170201"},{"lorong":"W18","lokasi":"W180170301"},{"lorong":"W18","lokasi":"W180170401"},{"lorong":"W18","lokasi":"W180180401"},{"lorong":"W18","lokasi":"W180190101"},{"lorong":"W18","lokasi":"W180190201"},{"lorong":"W18","lokasi":"W180190301"},{"lorong":"W18","lokasi":"W180190401"},{"lorong":"W18","lokasi":"W180210101"},{"lorong":"W18","lokasi":"W180210201"},{"lorong":"W18","lokasi":"W180210301"},{"lorong":"W18","lokasi":"W180210401"},{"lorong":"W18","lokasi":"W180220201"},{"lorong":"W18","lokasi":"W180220301"},{"lorong":"W18","lokasi":"W180220401"},{"lorong":"W18","lokasi":"W180230101"},{"lorong":"W18","lokasi":"W180230201"},{"lorong":"W18","lokasi":"W180230301"},{"lorong":"W18","lokasi":"W180230401"},{"lorong":"W18","lokasi":"W180250101"},{"lorong":"W18","lokasi":"W180250201"},{"lorong":"W18","lokasi":"W180250301"},{"lorong":"W18","lokasi":"W180250401"},{"lorong":"W18","lokasi":"W180260101"},{"lorong":"W18","lokasi":"W180260401"},{"lorong":"W18","lokasi":"W180270101"},{"lorong":"W18","lokasi":"W180270201"},{"lorong":"W18","lokasi":"W180270301"},{"lorong":"W18","lokasi":"W180270401"},{"lorong":"W18","lokasi":"W180290101"},{"lorong":"W18","lokasi":"W180290201"},{"lorong":"W18","lokasi":"W180290301"},{"lorong":"W18","lokasi":"W180310101"},{"lorong":"W18","lokasi":"W180310201"},{"lorong":"W18","lokasi":"W180310301"},{"lorong":"W18","lokasi":"W180310401"},{"lorong":"W18","lokasi":"W180330101"},{"lorong":"W18","lokasi":"W180330201"},{"lorong":"W18","lokasi":"W180330301"},{"lorong":"W18","lokasi":"W180330401"},{"lorong":"W18","lokasi":"W180340101"},{"lorong":"W18","lokasi":"W180340401"},{"lorong":"W18","lokasi":"W180350101"},{"lorong":"W18","lokasi":"W180350201"},{"lorong":"W18","lokasi":"W180350301"},{"lorong":"W18","lokasi":"W180350401"},{"lorong":"W18","lokasi":"W180360101"},{"lorong":"W18","lokasi":"W180360201"},{"lorong":"W18","lokasi":"W180360401"},{"lorong":"W18","lokasi":"W180370101"},{"lorong":"W18","lokasi":"W180370201"},{"lorong":"W18","lokasi":"W180370301"},{"lorong":"W18","lokasi":"W180370401"},{"lorong":"W18","lokasi":"W180380401"},{"lorong":"W19","lokasi":"W190010101"},{"lorong":"W19","lokasi":"W190010201"},{"lorong":"W19","lokasi":"W190010301"},{"lorong":"W19","lokasi":"W190020201"},{"lorong":"W19","lokasi":"W190020301"},{"lorong":"W19","lokasi":"W190020401"},{"lorong":"W19","lokasi":"W190030101"},{"lorong":"W19","lokasi":"W190030201"},{"lorong":"W19","lokasi":"W190030301"},{"lorong":"W19","lokasi":"W190040201"},{"lorong":"W19","lokasi":"W190040301"},{"lorong":"W19","lokasi":"W190050101"},{"lorong":"W19","lokasi":"W190050201"},{"lorong":"W19","lokasi":"W190050301"},{"lorong":"W19","lokasi":"W190060201"},{"lorong":"W19","lokasi":"W190060301"},{"lorong":"W19","lokasi":"W190060401"},{"lorong":"W19","lokasi":"W190070101"},{"lorong":"W19","lokasi":"W190070201"},{"lorong":"W19","lokasi":"W190070301"},{"lorong":"W19","lokasi":"W190070401"},{"lorong":"W19","lokasi":"W190080201"},{"lorong":"W19","lokasi":"W190080301"},{"lorong":"W19","lokasi":"W190080401"},{"lorong":"W19","lokasi":"W190090101"},{"lorong":"W19","lokasi":"W190090201"},{"lorong":"W19","lokasi":"W190090301"},{"lorong":"W19","lokasi":"W190090401"},{"lorong":"W19","lokasi":"W190100201"},{"lorong":"W19","lokasi":"W190100301"},{"lorong":"W19","lokasi":"W190110101"},{"lorong":"W19","lokasi":"W190120101"},{"lorong":"W19","lokasi":"W190130101"},{"lorong":"W19","lokasi":"W190130201"},{"lorong":"W19","lokasi":"W190130301"},{"lorong":"W19","lokasi":"W190140201"},{"lorong":"W19","lokasi":"W190140301"},{"lorong":"W19","lokasi":"W190150101"},{"lorong":"W19","lokasi":"W190150201"},{"lorong":"W19","lokasi":"W190150301"},{"lorong":"W19","lokasi":"W190160201"},{"lorong":"W19","lokasi":"W190160301"},{"lorong":"W19","lokasi":"W190170101"},{"lorong":"W19","lokasi":"W190170201"},{"lorong":"W19","lokasi":"W190170301"},{"lorong":"W19","lokasi":"W190170401"},{"lorong":"W19","lokasi":"W190180201"},{"lorong":"W19","lokasi":"W190190101"},{"lorong":"W19","lokasi":"W190190201"},{"lorong":"W19","lokasi":"W190200201"},{"lorong":"W19","lokasi":"W190210101"},{"lorong":"W19","lokasi":"W190210201"},{"lorong":"W19","lokasi":"W190210301"},{"lorong":"W19","lokasi":"W190220201"},{"lorong":"W19","lokasi":"W190220301"},{"lorong":"W19","lokasi":"W190230101"},{"lorong":"W19","lokasi":"W190230201"},{"lorong":"W19","lokasi":"W190230301"},{"lorong":"W19","lokasi":"W190240201"},{"lorong":"W19","lokasi":"W190250101"},{"lorong":"W19","lokasi":"W190250201"},{"lorong":"W19","lokasi":"W190250301"},{"lorong":"W19","lokasi":"W190260201"},{"lorong":"W19","lokasi":"W190270101"},{"lorong":"W19","lokasi":"W190270201"},{"lorong":"W19","lokasi":"W190280201"},{"lorong":"W19","lokasi":"W190290101"},{"lorong":"W19","lokasi":"W190290201"},{"lorong":"W19","lokasi":"W190300201"},{"lorong":"W19","lokasi":"W190300301"},{"lorong":"W19","lokasi":"W190300401"},{"lorong":"W19","lokasi":"W190310101"},{"lorong":"W19","lokasi":"W190310201"},{"lorong":"W19","lokasi":"W190310301"},{"lorong":"W19","lokasi":"W190310401"},{"lorong":"W19","lokasi":"W190320201"},{"lorong":"W19","lokasi":"W190320301"},{"lorong":"W19","lokasi":"W190320401"},{"lorong":"W19","lokasi":"W190330101"},{"lorong":"W19","lokasi":"W190330201"},{"lorong":"W19","lokasi":"W190330301"},{"lorong":"W19","lokasi":"W190340201"},{"lorong":"W19","lokasi":"W190340301"},{"lorong":"W19","lokasi":"W190340401"},{"lorong":"W19","lokasi":"W190350101"},{"lorong":"W19","lokasi":"W190350201"},{"lorong":"W19","lokasi":"W190350301"},{"lorong":"W19","lokasi":"W190360201"},{"lorong":"W19","lokasi":"W190360301"},{"lorong":"W19","lokasi":"W190370101"},{"lorong":"W19","lokasi":"W190370201"},{"lorong":"W19","lokasi":"W190370301"},{"lorong":"W19","lokasi":"W190380201"},{"lorong":"W19","lokasi":"W190390101"},{"lorong":"W19","lokasi":"W190390201"},{"lorong":"W19","lokasi":"W190390301"},{"lorong":"W19","lokasi":"W190390401"},{"lorong":"W19","lokasi":"W190400201"},{"lorong":"W19","lokasi":"W190400401"},{"lorong":"W20","lokasi":"W200010101"},{"lorong":"W20","lokasi":"W200010201"},{"lorong":"W20","lokasi":"W200010301"},{"lorong":"W20","lokasi":"W200010401"},{"lorong":"W20","lokasi":"W200010501"},{"lorong":"W20","lokasi":"W200010601"},{"lorong":"W20","lokasi":"W200030101"},{"lorong":"W20","lokasi":"W200030201"},{"lorong":"W20","lokasi":"W200030301"},{"lorong":"W20","lokasi":"W200030401"},{"lorong":"W20","lokasi":"W200040301"},{"lorong":"W20","lokasi":"W200040401"},{"lorong":"W20","lokasi":"W200050101"},{"lorong":"W20","lokasi":"W200050201"},{"lorong":"W20","lokasi":"W200050301"},{"lorong":"W20","lokasi":"W200060101"},{"lorong":"W20","lokasi":"W200060201"},{"lorong":"W20","lokasi":"W200060401"},{"lorong":"W20","lokasi":"W200070101"},{"lorong":"W20","lokasi":"W200070201"},{"lorong":"W20","lokasi":"W200070301"},{"lorong":"W20","lokasi":"W200070401"},{"lorong":"W20","lokasi":"W200080101"},{"lorong":"W20","lokasi":"W200080301"},{"lorong":"W21","lokasi":"W210010201"},{"lorong":"W21","lokasi":"W210030101"},{"lorong":"W21","lokasi":"W210030201"},{"lorong":"W21","lokasi":"W210030301"},{"lorong":"W21","lokasi":"W210050201"},{"lorong":"W21","lokasi":"W210070201"},{"lorong":"W21","lokasi":"W210090201"},{"lorong":"W21","lokasi":"W210110201"},{"lorong":"W21","lokasi":"W210130201"},{"lorong":"W21","lokasi":"W210130301"},{"lorong":"W21","lokasi":"W210150201"},{"lorong":"W21","lokasi":"W210150301"},{"lorong":"W21","lokasi":"W210170201"},{"lorong":"W22","lokasi":"W220010101"},{"lorong":"W23","lokasi":"W230010101"},{"lorong":"W23","lokasi":"W230020101"},{"lorong":"W23","lokasi":"W230030101"},{"lorong":"W23","lokasi":"W230040101"},{"lorong":"W23","lokasi":"W230050101"},{"lorong":"W23","lokasi":"W230060101"},{"lorong":"W23","lokasi":"W230070101"},{"lorong":"W23","lokasi":"W230080101"},{"lorong":"W23","lokasi":"W230090101"},{"lorong":"W23","lokasi":"W230100101"},{"lorong":"W23","lokasi":"W230110101"},{"lorong":"W23","lokasi":"W230120101"},{"lorong":"W23","lokasi":"W230130101"},{"lorong":"W23","lokasi":"W230140101"},{"lorong":"W23","lokasi":"W230150101"},{"lorong":"W23","lokasi":"W230160101"},{"lorong":"W23","lokasi":"W230170101"},{"lorong":"W23","lokasi":"W230180101"},{"lorong":"W24","lokasi":"W240010101"},{"lorong":"W24","lokasi":"W240020101"},{"lorong":"W24","lokasi":"W240030101"},{"lorong":"W24","lokasi":"W240040101"},{"lorong":"W24","lokasi":"W240050101"},{"lorong":"W24","lokasi":"W240060101"},{"lorong":"W24","lokasi":"W240070101"},{"lorong":"W27","lokasi":"W270010101"},{"lorong":"W28","lokasi":"W280010101"},{"lorong":"W28","lokasi":"W280020101"},{"lorong":"W28","lokasi":"W280030101"},{"lorong":"W28","lokasi":"W280040101"},{"lorong":"W28","lokasi":"W280050101"},{"lorong":"W29","lokasi":"W290010101"},{"lorong":"W29","lokasi":"W290020101"},{"lorong":"W29","lokasi":"W290030101"},{"lorong":"W29","lokasi":"W290040101"},{"lorong":"W29","lokasi":"W290050101"},{"lorong":"W29","lokasi":"W290060101"},{"lorong":"W29","lokasi":"W290070101"},{"lorong":"W29","lokasi":"W290080101"},{"lorong":"W29","lokasi":"W290090101"},{"lorong":"W29","lokasi":"W290100101"},{"lorong":"W29","lokasi":"W290110101"},{"lorong":"W29","lokasi":"W290120101"},{"lorong":"W29","lokasi":"W290130101"},{"lorong":"W29","lokasi":"W290140101"},{"lorong":"W29","lokasi":"W290160101"},{"lorong":"W29","lokasi":"W290170101"},{"lorong":"W29","lokasi":"W290180101"},{"lorong":"W29","lokasi":"W290190101"},{"lorong":"W29","lokasi":"W290200101"},{"lorong":"W30","lokasi":"W300010101"},{"lorong":"W30","lokasi":"W300020101"},{"lorong":"W30","lokasi":"W300030101"},{"lorong":"W30","lokasi":"W300040101"},{"lorong":"W30","lokasi":"W300050101"},{"lorong":"W30","lokasi":"W300060101"},{"lorong":"W30","lokasi":"W300070101"},{"lorong":"W30","lokasi":"W300080101"},{"lorong":"W30","lokasi":"W300090101"},{"lorong":"W30","lokasi":"W300100101"},{"lorong":"W30","lokasi":"W300110101"},{"lorong":"W30","lokasi":"W300120101"},{"lorong":"W30","lokasi":"W300130101"},{"lorong":"W30","lokasi":"W300140101"},{"lorong":"W30","lokasi":"W300150101"},{"lorong":"W30","lokasi":"W300160101"},{"lorong":"W30","lokasi":"W300170101"},{"lorong":"W30","lokasi":"W300180101"},{"lorong":"W30","lokasi":"W300190101"},{"lorong":"W30","lokasi":"W300200101"},{"lorong":"W30","lokasi":"W300210101"},{"lorong":"W30","lokasi":"W300220101"},{"lorong":"W30","lokasi":"W300230101"},{"lorong":"W30","lokasi":"W300240101"},{"lorong":"W30","lokasi":"W300250101"},{"lorong":"W30","lokasi":"W300260101"},{"lorong":"W30","lokasi":"W300270101"},{"lorong":"W30","lokasi":"W300280101"},{"lorong":"W30","lokasi":"W300290101"},{"lorong":"W30","lokasi":"W300300101"},{"lorong":"W30","lokasi":"W300310101"},{"lorong":"W30","lokasi":"W300320101"},{"lorong":"W30","lokasi":"W300330101"},{"lorong":"W30","lokasi":"W300340101"},{"lorong":"W30","lokasi":"W300350101"},{"lorong":"W30","lokasi":"W300360101"},{"lorong":"W31","lokasi":"W310010101"},{"lorong":"W31","lokasi":"W310030101"},{"lorong":"W31","lokasi":"W310040101"},{"lorong":"W31","lokasi":"W310050101"},{"lorong":"W31","lokasi":"W310060101"},{"lorong":"W31","lokasi":"W310070101"},{"lorong":"W31","lokasi":"W310080101"},{"lorong":"W31","lokasi":"W310090101"},{"lorong":"W31","lokasi":"W310100101"},{"lorong":"W31","lokasi":"W310110101"},{"lorong":"W31","lokasi":"W310120101"},{"lorong":"W31","lokasi":"W310130101"},{"lorong":"W31","lokasi":"W310140101"},{"lorong":"W31","lokasi":"W310150101"},{"lorong":"W31","lokasi":"W310160101"},{"lorong":"W31","lokasi":"W310170101"},{"lorong":"W31","lokasi":"W310180101"},{"lorong":"W31","lokasi":"W310190101"},{"lorong":"W31","lokasi":"W310200101"},{"lorong":"W32","lokasi":"W320010101"},{"lorong":"W33","lokasi":"W330010101"},{"lorong":"W49","lokasi":"W490010101"},{"lorong":"W49","lokasi":"W490020101"},{"lorong":"W49","lokasi":"W490030101"},{"lorong":"W49","lokasi":"W490100101"}];
+
+const STORAGE_KEY = 'wh_checklist_progress_v1';
+let checkedSet = new Set();
+let openLorong = new Set();
+let currentFilterLorong = '';
+let currentSearch = '';
+
+function loadProgress(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){
+      const arr = JSON.parse(raw);
+      checkedSet = new Set(arr);
+    }
+  }catch(e){ checkedSet = new Set(); }
+}
+function saveProgress(){
+  try{
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(checkedSet)));
+  }catch(e){}
+}
+
+function groupByLorong(data){
+  const map = {};
+  data.forEach(item=>{
+    if(!map[item.lorong]) map[item.lorong] = [];
+    map[item.lorong].push(item.lokasi);
+  });
+  return map;
+}
+const grouped = groupByLorong(LOKASI_DATA);
+const lorongList = Object.keys(grouped).sort();
+
+function populateLorongFilter(){
+  const sel = document.getElementById('lorongFilter');
+  lorongList.forEach(l=>{
+    const opt = document.createElement('option');
+    opt.value = l;
+    opt.textContent = l;
+    sel.appendChild(opt);
+  });
+}
+
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(showToast._timer);
+  showToast._timer = setTimeout(()=>t.classList.remove('show'), 1600);
+}
+
+function computeLorongStats(lorong){
+  const items = grouped[lorong] || [];
+  const total = items.length;
+  const done = items.filter(k=>checkedSet.has(k)).length;
+  return {total, done, pct: total? Math.round(done/total*100):0};
+}
+
+function computeOverallStats(){
+  const total = LOKASI_DATA.length;
+  const done = checkedSet.size;
+  return {total, done, pct: total? Math.round(done/total*100):0};
+}
+
+function renderTopProgress(){
+  const {total, done, pct} = computeOverallStats();
+  document.getElementById('doneCount').textContent = done;
+  document.getElementById('totalCount').textContent = total;
+  document.getElementById('pctText').textContent = pct + '%';
+  document.getElementById('progressFill').style.width = pct + '%';
+}
+
+function matchesSearch(code){
+  if(!currentSearch) return true;
+  return code.toUpperCase().includes(currentSearch.toUpperCase());
+}
+
+function renderChecklist(){
+  const container = document.getElementById('lorongContainer');
+  container.innerHTML = '';
+  let visibleLorongCount = 0;
+  let visibleItemCount = 0;
+
+  const lorongsToShow = currentFilterLorong ? [currentFilterLorong] : lorongList;
+
+  lorongsToShow.forEach(lorong=>{
+    const items = grouped[lorong].filter(code=>matchesSearch(code));
+    if(items.length === 0) return;
+    visibleLorongCount++;
+    visibleItemCount += items.length;
+
+    const stats = computeLorongStats(lorong);
+    const isOpen = openLorong.has(lorong) || !!currentSearch || !!currentFilterLorong;
+
+    const groupEl = document.createElement('div');
+    groupEl.className = 'lorong-group';
+
+    const headerEl = document.createElement('div');
+    headerEl.className = 'lorong-header' + (isOpen ? ' open' : '');
+    headerEl.innerHTML = `
+      <div class="name"><span class="caret">▶</span> ${lorong}</div>
+      <div class="meta">
+        <span class="lorong-count">${stats.done}/${stats.total}</span>
+        <div class="mini-bar"><div class="mini-bar-fill" style="width:${stats.pct}%"></div></div>
+        ${stats.pct===100 ? '<span class="badge-done">✓ Selesai</span>' : ''}
+      </div>
+    `;
+    headerEl.addEventListener('click', ()=>{
+      if(openLorong.has(lorong)) openLorong.delete(lorong);
+      else openLorong.add(lorong);
+      renderChecklist();
+    });
+
+    const listEl = document.createElement('div');
+    listEl.className = 'lokasi-list' + (isOpen ? ' open' : '');
+
+    items.forEach(code=>{
+      const isChecked = checkedSet.has(code);
+      const itemEl = document.createElement('label');
+      itemEl.className = 'lokasi-item' + (isChecked ? ' checked' : '');
+      itemEl.innerHTML = `
+        <input type="checkbox" ${isChecked ? 'checked' : ''} data-code="${code}">
+        <span class="code">${code}</span>
+        <span class="lorong-tag">${lorong}</span>
+      `;
+      const cb = itemEl.querySelector('input');
+      cb.addEventListener('change', ()=>{
+        if(cb.checked) checkedSet.add(code);
+        else checkedSet.delete(code);
+        saveProgress();
+        itemEl.classList.toggle('checked', cb.checked);
+        renderTopProgress();
+        updateLorongHeaderInline(lorong, headerEl);
+      });
+      listEl.appendChild(itemEl);
+    });
+
+    groupEl.appendChild(headerEl);
+    groupEl.appendChild(listEl);
+    container.appendChild(groupEl);
+  });
+
+  document.getElementById('emptyState').style.display = visibleItemCount === 0 ? 'block' : 'none';
+
+  const counterEl = document.getElementById('listCounter');
+  if(currentSearch){
+    counterEl.textContent = `${visibleItemCount} lokasi cocok dengan "${currentSearch}"`;
+  } else if(currentFilterLorong){
+    counterEl.textContent = `Lorong ${currentFilterLorong}`;
+  } else {
+    counterEl.textContent = `Menampilkan semua lorong (${lorongList.length} lorong, ${LOKASI_DATA.length} lokasi)`;
+  }
+}
+
+function updateLorongHeaderInline(lorong, headerEl){
+  const stats = computeLorongStats(lorong);
+  headerEl.querySelector('.lorong-count').textContent = `${stats.done}/${stats.total}`;
+  headerEl.querySelector('.mini-bar-fill').style.width = stats.pct + '%';
+  const badge = headerEl.querySelector('.badge-done');
+  if(stats.pct === 100 && !badge){
+    const meta = headerEl.querySelector('.meta');
+    const b = document.createElement('span');
+    b.className = 'badge-done';
+    b.textContent = '✓ Selesai';
+    meta.appendChild(b);
+  } else if(stats.pct < 100 && badge){
+    badge.remove();
+  }
+}
+
+function renderRecap(){
+  const tbody = document.getElementById('recapBody');
+  const tfoot = document.getElementById('recapFoot');
+  tbody.innerHTML = '';
+  tfoot.innerHTML = '';
+
+  let totalAll = 0, doneAll = 0;
+
+  lorongList.forEach(lorong=>{
+    const stats = computeLorongStats(lorong);
+    totalAll += stats.total;
+    doneAll += stats.done;
+    const pctClass = stats.pct === 100 ? 'full' : (stats.pct >= 50 ? 'mid' : 'low');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${lorong}</td>
+      <td>${stats.total}</td>
+      <td>${stats.done}</td>
+      <td class="pct ${pctClass}">${stats.pct}%
+        <div class="recap-mini-bar"><div class="recap-mini-fill" style="width:${stats.pct}%"></div></div>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  const overallPct = totalAll ? Math.round(doneAll/totalAll*100) : 0;
+  const totalRow = document.createElement('tr');
+  totalRow.className = 'total-row';
+  totalRow.innerHTML = `
+    <td>TOTAL</td>
+    <td>${totalAll}</td>
+    <td>${doneAll}</td>
+    <td class="pct ${overallPct===100?'full':(overallPct>=50?'mid':'low')}">${overallPct}%</td>
+  `;
+  tfoot.appendChild(totalRow);
+}
+
+function pctColor(pct){
+  if(pct === 100) return '#1b8a5a';
+  if(pct >= 50) return '#b8860b';
+  return '#c0392b';
+}
+
+function downloadRecapPng(){
+  const rows = lorongList.map(lorong=>({lorong, ...computeLorongStats(lorong)}));
+  const overall = computeOverallStats();
+
+  const scale = 2; // retina-quality output
+  const width = 640;
+  const padX = 20;
+  const titleH = 74;
+  const headerH = 40;
+  const rowH = 32;
+  const totalRowH = 38;
+  const footerH = 34;
+  const tableTop = titleH;
+  const tableH = headerH + rows.length * rowH + totalRowH;
+  const height = titleH + tableH + footerH;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = width * scale;
+  canvas.height = height * scale;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(scale, scale);
+
+  // background
+  ctx.fillStyle = '#f3f5f8';
+  ctx.fillRect(0, 0, width, height);
+
+  // Title block
+  const grad = ctx.createLinearGradient(0, 0, width, 0);
+  grad.addColorStop(0, '#0b2545');
+  grad.addColorStop(1, '#1a4a80');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, width, titleH);
+
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '700 17px Arial, sans-serif';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('Rekap Progress Hitung Barang', padX, 28);
+
+  ctx.font = '400 12px Arial, sans-serif';
+  ctx.fillStyle = '#c7d6ea';
+  ctx.fillText('by Lorong — Support Back TLC', padX, 48);
+
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('id-ID', {day:'2-digit', month:'long', year:'numeric'}) +
+                  ' ' + now.toLocaleTimeString('id-ID', {hour:'2-digit', minute:'2-digit'});
+  ctx.font = '400 11px Arial, sans-serif';
+  ctx.fillStyle = '#9fb3cc';
+  ctx.fillText(dateStr, padX, 64);
+
+  // Column layout
+  const colX = {
+    lorong: padX,
+    total: 260,
+    hitung: 380,
+    pct: width - padX
+  };
+
+  // Table header
+  let y = tableTop;
+  ctx.fillStyle = '#0b2545';
+  ctx.fillRect(0, y, width, headerH);
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '700 12.5px Arial, sans-serif';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('LORONG', colX.lorong, y + headerH/2);
+  ctx.textAlign = 'right';
+  ctx.fillText('TOTAL', colX.total, y + headerH/2);
+  ctx.fillText('HITUNG', colX.hitung, y + headerH/2);
+  ctx.fillText('%', colX.pct, y + headerH/2);
+  ctx.textAlign = 'left';
+  y += headerH;
+
+  // Rows
+  rows.forEach((r, idx)=>{
+    ctx.fillStyle = idx % 2 === 0 ? '#ffffff' : '#f7f9fc';
+    ctx.fillRect(0, y, width, rowH);
+
+    ctx.strokeStyle = '#eef1f5';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, y + rowH);
+    ctx.lineTo(width, y + rowH);
+    ctx.stroke();
+
+    ctx.fillStyle = '#1c2a3a';
+    ctx.font = '700 12.5px Arial, sans-serif';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(r.lorong, colX.lorong, y + rowH/2);
+
+    ctx.font = '400 12.5px Arial, sans-serif';
+    ctx.textAlign = 'right';
+    ctx.fillText(String(r.total), colX.total, y + rowH/2);
+    ctx.fillText(String(r.done), colX.hitung, y + rowH/2);
+
+    ctx.font = '700 12.5px Arial, sans-serif';
+    ctx.fillStyle = pctColor(r.pct);
+    ctx.fillText(r.pct + '%', colX.pct, y + rowH/2);
+    ctx.textAlign = 'left';
+
+    // mini progress bar under percentage area (spans hitung->pct zone lightly), draw small bar left-aligned after lorong col
+    const barX = colX.lorong + 90;
+    const barW = 110;
+    const barH = 5;
+    const barY = y + rowH/2 - barH/2;
+    ctx.fillStyle = '#e6ebf2';
+    ctx.fillRect(barX, barY, barW, barH);
+    ctx.fillStyle = pctColor(r.pct);
+    ctx.fillRect(barX, barY, barW * (r.pct/100), barH);
+
+    y += rowH;
+  });
+
+  // Total row
+  ctx.fillStyle = '#eef3fa';
+  ctx.fillRect(0, y, width, totalRowH);
+  ctx.strokeStyle = '#1a4a80';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(0, y);
+  ctx.lineTo(width, y);
+  ctx.stroke();
+
+  ctx.fillStyle = '#0b2545';
+  ctx.font = '700 13.5px Arial, sans-serif';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('TOTAL', colX.lorong, y + totalRowH/2);
+  ctx.textAlign = 'right';
+  ctx.fillText(String(overall.total), colX.total, y + totalRowH/2);
+  ctx.fillText(String(overall.done), colX.hitung, y + totalRowH/2);
+  ctx.fillStyle = pctColor(overall.pct);
+  ctx.fillText(overall.pct + '%', colX.pct, y + totalRowH/2);
+  ctx.textAlign = 'left';
+  y += totalRowH;
+
+  // Footer note
+  ctx.fillStyle = '#8a97a8';
+  ctx.font = '400 10.5px Arial, sans-serif';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('Dibuat otomatis dari Checklist Hitung Barang WH', padX, y + footerH/2);
+
+  canvas.toBlob(function(blob){
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const fileDate = now.toISOString().slice(0,10);
+    a.href = url;
+    a.download = `Rekap_Hitung_Barang_${fileDate}.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url), 2000);
+    showToast('PNG rekap berhasil diunduh');
+  }, 'image/png');
+}
+
+function attachControls(){
+  document.getElementById('btnDownloadRecapPng').addEventListener('click', downloadRecapPng);
+  document.getElementById('searchInput').addEventListener('input', (e)=>{
+    currentSearch = e.target.value.trim();
+    renderChecklist();
+  });
+  document.getElementById('lorongFilter').addEventListener('change', (e)=>{
+    currentFilterLorong = e.target.value;
+    renderChecklist();
+  });
+  document.getElementById('btnExpandAll').addEventListener('click', ()=>{
+    lorongList.forEach(l=>openLorong.add(l));
+    renderChecklist();
+  });
+  document.getElementById('btnCollapseAll').addEventListener('click', ()=>{
+    openLorong.clear();
+    renderChecklist();
+  });
+  document.getElementById('btnReset').addEventListener('click', ()=>{
+    if(confirm('Reset semua progress checklist? Tindakan ini tidak bisa dibatalkan.')){
+      checkedSet.clear();
+      saveProgress();
+      renderTopProgress();
+      renderChecklist();
+      renderRecap();
+      showToast('Progress direset');
+    }
+  });
+
+  document.querySelectorAll('.tab-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+      btn.classList.add('active');
+      const tab = btn.dataset.tab;
+      document.getElementById('checklistView').style.display = tab==='checklist' ? 'block' : 'none';
+      document.getElementById('recapView').style.display = tab==='recap' ? 'block' : 'none';
+      if(tab==='recap') renderRecap();
+    });
+  });
+}
+
+function init(){
+  loadProgress();
+  populateLorongFilter();
+  attachControls();
+  renderTopProgress();
+  renderChecklist();
+  renderRecap();
+}
+init();
+</script>
+</body>
+</html>
